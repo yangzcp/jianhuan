@@ -1,0 +1,12 @@
+# Rime dictionary
+# encoding: utf-8
+#
+# User-editable phrase table. Add entries as:
+#   词语<TAB>pin yin<TAB>weight
+# Then redeploy the engine.
+#
+---
+name: jianhuan_user
+version: "0.1"
+sort: by_weight
+...

@@ -1,0 +1,6 @@
+LIBRARY jianhuan_tsf
+EXPORTS
+  DllGetClassObject=JianhuanDllGetClassObject
+  DllCanUnloadNow=JianhuanDllCanUnloadNow
+  DllRegisterServer=JianhuanDllRegisterServer
+  DllUnregisterServer=JianhuanDllUnregisterServer

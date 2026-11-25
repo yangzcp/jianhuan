@@ -1,0 +1,13 @@
+# Rime dictionary
+# encoding: utf-8
+---
+name: jianhuan_pinyin
+version: "0.1"
+sort: by_weight
+import_tables:
+  - pinyin_simp
+  - jianhuan_phrases
+  - jianhuan_poetry
+  - jianhuan_emoji
+  - jianhuan_user
+...

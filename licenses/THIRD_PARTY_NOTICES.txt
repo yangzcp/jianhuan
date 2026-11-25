@@ -1,0 +1,76 @@
+Jianhuan third-party notices (prototype)
+
+This product uses the following third-party components. Own application code
+is proprietary; the components below remain under their own licenses.
+
+1. librime
+   License: BSD-3-Clause
+   Source: https://github.com/rime/librime
+   Local copy: third_party/librime
+   Notice: licenses/librime-LICENSE
+
+2. rime-pinyin-simp dictionary
+   License: Apache-2.0
+   Source: https://github.com/rime/rime-pinyin-simp
+   Local copy: third_party/rime-pinyin-simp
+   Notice: licenses/rime-pinyin-simp-LICENSE
+   Authors: licenses/rime-pinyin-simp-AUTHORS
+   Modification: data/jianhuan_pinyin.schema.yaml is modified from the
+   upstream schema; stroke reverse lookup was removed. The double pinyin
+   schema is independently generated and does not use GPL rime-double-pinyin.
+
+3. phrase-pinyin-data
+   License: MIT
+   Source: https://github.com/mozillazg/phrase-pinyin-data
+   Notice: licenses/phrase-pinyin-data-LICENSE
+   Modification: data/jianhuan_phrases.dict.yaml is generated from large_pinyin.txt;
+   tones are removed and ü is represented as v. Phrases are filtered by
+   single-character frequency from rime-pinyin-simp; weights are provisional.
+
+3a. Classical poetry lines (data/jianhuan_poetry.dict.yaml)
+    Public-domain ancient Chinese poetry text; pinyin annotation is original
+    to this project. No copyleft obligation.
+
+3b. Emoji table (data/jianhuan_emoji.dict.yaml) and abbreviated-pinyin table
+    (data/custom_phrase.txt): original mappings by this project.
+    Emoji characters are Unicode standard characters.
+
+3c. Rime custom_phrase / stabledb mechanism: part of librime (BSD-3-Clause).
+
+4. Boost (regex, algorithm, range, signals2, unordered, container,
+   interprocess, crc, scope-exit, uuid, vmd, and dependencies)
+   License: BSL-1.0
+   Source: https://www.boost.org/
+   Installed via vcpkg into .deps/vcpkg
+
+5. LevelDB
+   License: BSD-3-Clause
+   Source: https://github.com/google/leveldb
+
+6. marisa-trie
+   License: BSD-2-Clause OR LGPL-2.1-or-later; this build selects BSD-2-Clause.
+   Source: https://github.com/s-yata/marisa-trie
+
+7. OpenCC
+   License: Apache-2.0
+   Source: https://github.com/BYVoid/OpenCC
+   Data bundled under data/opencc
+
+8. yaml-cpp
+   License: MIT
+   Source: https://github.com/jbeder/yaml-cpp
+
+9. spdlog / fmt
+   License: MIT
+   Source: https://github.com/gabime/spdlog, https://github.com/fmtlib/fmt
+
+Excluded from this product:
+- rime/weasel (GPL-3.0)
+- rime/squirrel (GPL-3.0)
+- rime/rime-double-pinyin (GPL-3.0)
+- rime/rime-luna-pinyin (LGPL-3.0)
+- rime/rime-essay (LGPL-3.0)
+- librime-legacy (GPL components)
+
+Before commercial release, generate a full SBOM and include all upstream
+copyright notices, Apache NOTICE files, and license texts in the installer.

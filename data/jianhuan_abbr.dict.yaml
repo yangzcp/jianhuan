@@ -1,0 +1,88 @@
+# Rime dictionary
+# encoding: utf-8
+#
+# Common abbreviated-pinyin (jianpin) codes.
+#
+---
+name: jianhuan_abbr
+version: "0.1"
+sort: by_weight
+...
+现在	xz	100
+现在	xianz	100
+我们	wm	100
+我们	wom	100
+你们	nm	100
+他们	tm	100
+什么	sm	100
+什么	shenm	100
+怎么	zm	100
+怎么	zenm	100
+为什么	wsm	100
+因为	yw	100
+所以	sy	100
+但是	ds	100
+可是	ks	100
+如果	rg	100
+虽然	sr	100
+而且	eq	100
+或者	hz	100
+以及	yj	100
+已经	yj	90
+可以	ky	100
+应该	yg	100
+知道	zd	100
+觉得	jd	100
+喜欢	xh	100
+希望	xw	100
+谢谢	xx	100
+你好	nh	100
+再见	zj	100
+朋友	py	100
+同学	tx	100
+老师	ls	100
+学生	xs	100
+工作	gz	100
+学习	xx	90
+生活	sh	100
+时间	sj	100
+时候	sh	90
+地方	df	100
+东西	dx	100
+事情	sq	100
+问题	wt	100
+办法	bf	100
+机会	jh	100
+国家	gj	100
+中国	zg	100
+北京	bj	100
+上海	sh	90
+广州	gz	90
+深圳	sz	100
+今天	jt	100
+明天	mt	100
+昨天	zt	100
+早上	zs	100
+晚上	ws	100
+中午	zw	100
+下午	xw	90
+上午	sw	100
+分钟	fz	100
+小时	xs	90
+睡觉	sj	90
+吃饭	cf	100
+喝水	hs	100
+上班	sb	100
+下班	xb	100
+回家	hj	100
+出门	cm	100
+开车	kc	100
+坐车	zc	100
+地铁	dt	100
+飞机	fj	100
+火车	hc	100
+手机	sj	90
+电脑	dn	100
+网络	wl	100
+密码	mm	100
+账号	zh	100

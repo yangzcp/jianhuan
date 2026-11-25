@@ -1,0 +1,61 @@
+# Rime dictionary
+# encoding: utf-8
+#
+# Classical poetry lines (public-domain text) with original pinyin annotation.
+#
+---
+name: jianhuan_poetry
+version: "0.1"
+sort: by_weight
+...
+床前明月光	chuang qian ming yue guang	100
+疑是地上霜	yi shi di shang shuang	100
+举头望明月	ju tou wang ming yue	100
+低头思故乡	di tou si gu xiang	100
+春眠不觉晓	chun mian bu jue xiao	100
+处处闻啼鸟	chu chu wen ti niao	100
+夜来风雨声	ye lai feng yu sheng	100
+花落知多少	hua luo zhi duo shao	100
+白日依山尽	bai ri yi shan jin	100
+黄河入海流	huang he ru hai liu	100
+欲穷千里目	yu qiong qian li mu	100
+更上一层楼	geng shang yi ceng lou	100
+红豆生南国	hong dou sheng nan guo	100
+春来发几枝	chun lai fa ji zhi	100
+愿君多采撷	yuan jun duo cai xie	100
+此物最相思	ci wu zui xiang si	100
+空山新雨后	kong shan xin yu hou	100
+天气晚来秋	tian qi wan lai qiu	100
+明月松间照	ming yue song jian zhao	100
+清泉石上流	qing quan shi shang liu	100
+海内存知己	hai nei cun zhi ji	100
+天涯若比邻	tian ya ruo bi lin	100
+会当凌绝顶	hui dang ling jue ding	100
+一览众山小	yi lan zhong shan xiao	100
+春蚕到死丝方尽	chun can dao si si fang jin	100
+蜡炬成灰泪始干	la ju cheng hui lei shi gan	100
+身无彩凤双飞翼	shen wu cai feng shuang fei yi	100
+心有灵犀一点通	xin you ling xi yi dian tong	100
+曾经沧海难为水	ceng jing cang hai nan wei shui	100
+除却巫山不是云	chu que wu shan bu shi yun	100
+两情若是久长时	liang qing ruo shi jiu chang shi	100
+又岂在朝朝暮暮	you qi zai zhao zhao mu mu	100
+人生若只如初见	ren sheng ruo zhi ru chu jian	100
+何事秋风悲画扇	he shi qiu feng bei hua shan	100
+众里寻他千百度	zhong li xun ta qian bai du	100
+蓦然回首	mo ran hui shou	100
+那人却在灯火阑珊处	na ren que zai deng huo lan shan chu	100
+明月几时有	ming yue ji shi you	100
+把酒问青天	ba jiu wen qing tian	100
+但愿人长久	dan yuan ren chang jiu	100
+千里共婵娟	qian li gong chan juan	100
+大江东去	da jiang dong qu	100
+浪淘尽千古风流人物	lang tao jin qian gu feng liu ren wu	100
+江山如画	jiang shan ru hua	100
+一时多少豪杰	yi shi duo shao hao jie	100
+寻寻觅觅	xun xun mi mi	100
+冷冷清清	leng leng qing qing	100
+凄凄惨惨戚戚	qi qi can can qi qi	100
+梧桐更兼细雨	wu tong geng jian xi yu	100
+到黄昏点点滴滴	dao huang hun dian dian di di	100
+这次第怎一个愁字了得	zhe ci di zen yi ge chou zi liao de	100

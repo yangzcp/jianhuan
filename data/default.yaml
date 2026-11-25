@@ -1,0 +1,16 @@
+schema_list:
+  - schema: jianhuan_pinyin
+  - schema: jianhuan_double_pinyin
+
+menu:
+  page_size: 5
+
+ascii_composer:
+  good_old_caps_lock: true
+  switch_key:
+    Shift_L: noop
+    Shift_R: noop
+    Control_L: noop
+    Control_R: noop
+    Caps_Lock: clear
+    Eisu_toggle: clear

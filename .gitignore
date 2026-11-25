@@ -1,0 +1,15 @@
+build/
+build-*/
+.deps/
+.tools/
+data/build/
+dist/jianhuan/
+*.user
+*.suo
+*.obj
+*.lib
+*.dll
+*.exe
+*.pdb
+*.ilk
+!dist/JianhuanSetup.exe

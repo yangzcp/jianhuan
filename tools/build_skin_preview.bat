@@ -1,0 +1,3 @@
+@echo off
+call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+cl /nologo /std:c++20 /EHsc /O2 /MT /utf-8 /DUNICODE /D_UNICODE /I "%~dp0..\src\platform\windows" "%~dp0skin_preview.cpp" "%~dp0..\src\platform\windows\candidate_window.cpp" /Fe"%~dp0..\build\skin_preview.exe" /Fo"%~dp0..\build\setup\\" /link user32.lib gdi32.lib gdiplus.lib ole32.lib /SUBSYSTEM:WINDOWS /ENTRY:wmainCRTStartup

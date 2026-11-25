@@ -1,0 +1,39 @@
+# Rime dictionary
+# encoding: utf-8
+#
+# Emoji candidates mapped to pinyin.
+#
+---
+name: jianhuan_emoji
+version: "0.1"
+sort: by_weight
+...
+😄	ha ha	10
+😂	xiao ku	10
+😭	ku	10
+😡	sheng qi	10
+🤔	si kao	10
+😴	shui jiao	10
+❤️	ai xin	10
+💔	shang xin	10
+👍	zan	10
+👏	gu zhang	10
+🙏	bai tuo	10
+💪	jia you	10
+🌹	mei gui	10
+🌸	yang hua	10
+🍎	ping guo	10
+🍺	pi jiu	10
+☕	ka fei	10
+🎉	qing zhu	10
+🎂	sheng ri	10
+🐶	xiao gou	10
+🐱	xiao mao	10
+🐼	xiong mao	10
+🌞	tai yang	10
+🌙	yue liang	10
+⭐	xing xing	10
+🔥	huo	10
+💯	man fen	10
+✅	dui	10
+❌	cuo	10
