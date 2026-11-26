@@ -45,6 +45,7 @@ class Engine {
   bool get_commit(std::uint64_t session, std::string& text);
   bool get_context(std::uint64_t session, Context& context);
   bool is_composing(std::uint64_t session);
+  std::string raw_input(std::uint64_t session);
 
   bool select_candidate(std::uint64_t session, std::size_t index);
   bool select_candidate_on_current_page(std::uint64_t session, std::size_t index);

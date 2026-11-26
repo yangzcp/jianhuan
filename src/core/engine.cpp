@@ -227,6 +227,15 @@ bool Engine::is_composing(std::uint64_t session) {
   return composing;
 }
 
+std::string Engine::raw_input(std::uint64_t session) {
+  if (!initialized() || session == 0) {
+    return {};
+  }
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  const char* input = impl_->api->get_input(static_cast<RimeSessionId>(session));
+  return input ? std::string(input) : std::string{};
+}
+
 bool Engine::select_candidate(std::uint64_t session, std::size_t index) {
   if (!initialized() || session == 0) {
     return false;

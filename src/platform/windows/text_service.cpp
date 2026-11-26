@@ -353,6 +353,19 @@ HRESULT JianhuanTextService::HandleKey(TfEditCookie cookie, ITfContext* context,
   }
 
   auto& engine = jianhuan::Engine::instance();
+  if (keycode >= '1' && keycode <= '9') {
+    jianhuan::Context c;
+    engine.get_context(session_, c);
+    const std::string raw = engine.raw_input(session_);
+    if (!raw.empty() && (keycode - '0') == static_cast<int>(c.candidates.size()) + 1) {
+      InsertText(cookie, context, raw);
+      engine.clear_composition(session_);
+      EndComposition(cookie);
+      candidate_.Hide();
+      composing_ = false;
+      return S_OK;
+    }
+  }
   engine.process_key(session_, keycode, mask);
 
   std::string commit;
@@ -395,10 +408,6 @@ HRESULT JianhuanTextService::UpdateComposition(TfEditCookie cookie, ITfContext* 
     EndComposition(cookie);
     candidate_.Hide();
     composing_ = false;
-    return S_OK;
-  }
-  if (engine_context.candidates.empty()) {
-    candidate_.Hide();
     return S_OK;
   }
   composing_ = true;
@@ -450,6 +459,10 @@ HRESULT JianhuanTextService::UpdateComposition(TfEditCookie cookie, ITfContext* 
   std::vector<std::string> candidates;
   for (const auto& candidate : engine_context.candidates) {
     candidates.push_back(candidate.text);
+  }
+  const std::string raw = jianhuan::Engine::instance().raw_input(session_);
+  if (!raw.empty()) {
+    candidates.push_back(raw);
   }
   candidate_.Show(rect.left, rect.bottom, candidates, engine_context.highlighted,
                   engine_context.page_no, engine_context.is_last_page, engine_context.preedit);

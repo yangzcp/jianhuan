@@ -36,7 +36,14 @@ engine:
   translators:
     - punct_translator
     - script_translator
+    - table_translator@english
     - table_translator@custom_phrase
+
+english:
+  dictionary: jianhuan_english
+  enable_completion: true
+  enable_sentence: false
+  initial_quality: 0.5
 
 custom_phrase:
   dictionary: ""
