@@ -1,3 +1,5 @@
+[中文](README.md) | [English](README.en.md)
+
 # 简焕输入法（Jianhuan IME）
 
 简焕是一款本地、离线的中文输入法，面向 Windows 10 / Windows 11，支持 32 位与 64 位应用。核心引擎与词库采用宽松许可组件，应用代码可闭源商用。

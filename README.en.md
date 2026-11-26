@@ -1,3 +1,5 @@
+[中文](README.md) | [English](README.en.md)
+
 # Jianhuan IME (简焕输入法)
 
 Jianhuan is a local, offline Chinese input method for Windows 10 / Windows 11, supporting both 32-bit and 64-bit applications. The engine and dictionaries use permissively licensed components; application code is suitable for closed-source commercial use.
