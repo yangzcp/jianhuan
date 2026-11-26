@@ -40,7 +40,9 @@ class JianhuanTextService : public ITfTextInputProcessor,
   void EndComposition(TfEditCookie cookie);
   void ShowCandidates(const jianhuan::Context& c, int x, int y);
   HRESULT CommitAndFinish(TfEditCookie cookie, ITfContext* context, const std::string& text, bool clear);
+  void ToggleOnShiftTap();
   bool ShouldEatKey(WPARAM wparam) const;
+  bool AsciiMode() const;
   bool IsPasswordField(ITfContext* context);
 
   LONG ref_ = 1;
@@ -52,10 +54,10 @@ class JianhuanTextService : public ITfTextInputProcessor,
   RECT last_rect_ = {};
   bool have_last_rect_ = false;
   CandidateWindow candidate_;
-  bool ascii_mode_ = false;
   bool composing_ = false;
   bool password_field_ = false;
   bool prev_ascii_punct_ = false;
+  bool prev_ascii_mode_ = false;
   bool shift_down_ = false;
   bool shift_tap_ = false;
   IUIAutomation* uia_ = nullptr;

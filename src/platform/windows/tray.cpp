@@ -16,6 +16,7 @@ constexpr UINT kCmdPunct = 4;
 constexpr UINT kCmdFull = 5;
 constexpr UINT kCmdAbout = 6;
 constexpr UINT kCmdExit = 7;
+constexpr UINT kCmdAscii = 8;
 
 std::string UserDir() {
   wchar_t appdata[MAX_PATH] = {};
@@ -44,6 +45,7 @@ void ShowMenu(HWND hwnd) {
   AppendMenuW(menu, MF_STRING | (settings.schema_id == "jianhuan_double_pinyin" ? MF_CHECKED : 0), kCmdDouble, L"双拼");
   AppendMenuW(menu, MF_STRING | (settings.ascii_punct ? MF_CHECKED : 0), kCmdPunct, L"英文标点");
   AppendMenuW(menu, MF_STRING | (settings.full_shape ? MF_CHECKED : 0), kCmdFull, L"全角");
+  AppendMenuW(menu, MF_STRING | (settings.ascii_mode ? MF_CHECKED : 0), kCmdAscii, L"英文模式");
   AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING, kCmdAbout, L"关于简焕");
   AppendMenuW(menu, MF_STRING, kCmdExit, L"退出托盘");
@@ -69,6 +71,7 @@ void ShowMenu(HWND hwnd) {
   if (cmd == kCmdDouble) settings.schema_id = "jianhuan_double_pinyin";
   if (cmd == kCmdPunct) settings.ascii_punct = !settings.ascii_punct;
   if (cmd == kCmdFull) settings.full_shape = !settings.full_shape;
+  if (cmd == kCmdAscii) settings.ascii_mode = !settings.ascii_mode;
   jianhuan::save_settings(UserDir(), settings);
 }
 

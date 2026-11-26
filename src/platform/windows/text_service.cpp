@@ -55,6 +55,10 @@ bool IsPunctToggle(WPARAM wparam) {
   return wparam == VK_OEM_PERIOD && (GetKeyState(VK_CONTROL) & 0x8000);
 }
 
+bool IsShiftVk(WPARAM wparam) {
+  return wparam == VK_SHIFT || wparam == VK_LSHIFT || wparam == VK_RSHIFT;
+}
+
 bool MapKey(WPARAM wparam, int& keycode, int& mask) {
   const UINT vk = static_cast<UINT>(wparam);
   mask = 0;
@@ -188,8 +192,6 @@ STDMETHODIMP JianhuanTextService::Activate(ITfThreadMgr* thread_mgr, TfClientId 
   jianhuan::Engine::instance().set_option(session_, "ascii_mode", settings.ascii_mode);
   jianhuan::Engine::instance().set_option(session_, "full_shape", settings.full_shape);
   jianhuan::Engine::instance().set_option(session_, "ascii_punct", settings.ascii_punct);
-  ascii_mode_ = false;
-  jianhuan::Engine::instance().set_option(session_, "ascii_mode", false);
   g_current_session = session_;
   TsfLog(L"Activate session=" + std::to_wstring(session_) + L" schema=" +
          std::wstring(settings.schema_id.begin(), settings.schema_id.end()));
@@ -233,7 +235,7 @@ STDMETHODIMP JianhuanTextService::Deactivate() {
   if (session_) {
     jianhuan::Settings settings;
     jianhuan::load_settings(jianhuan::Engine::instance().user_data_dir(), settings);
-    settings.ascii_mode = ascii_mode_;
+    settings.ascii_mode = AsciiMode();
     settings.schema_id = jianhuan::Engine::instance().current_schema(session_);
     jianhuan::save_settings(jianhuan::Engine::instance().user_data_dir(), settings);
     jianhuan::Engine::instance().destroy_session(session_);
@@ -248,13 +250,17 @@ STDMETHODIMP JianhuanTextService::OnSetFocus(BOOL) {
   return S_OK;
 }
 
+bool JianhuanTextService::AsciiMode() const {
+  return jianhuan::Engine::instance().get_option(session_, "ascii_mode");
+}
+
 bool JianhuanTextService::ShouldEatKey(WPARAM wparam) const {
   const UINT vk = static_cast<UINT>(wparam);
   int keycode = 0;
   int mask = 0;
   MapKey(wparam, keycode, mask);
   return jianhuan::ShouldEatKeyPolicy(
-      ascii_mode_, jianhuan::Engine::instance().is_composing(session_),
+      AsciiMode(), jianhuan::Engine::instance().is_composing(session_),
       jianhuan::Engine::instance().get_option(session_, "ascii_punct"),
       vk,
       (GetKeyState(VK_CONTROL) & 0x8000) != 0,
@@ -311,11 +317,18 @@ bool JianhuanTextService::IsPasswordField(ITfContext* context) {
 
 STDMETHODIMP JianhuanTextService::OnTestKeyDown(ITfContext* context, WPARAM wparam, LPARAM, BOOL* eaten) {
   if (!eaten) return E_INVALIDARG;
-  if (wparam == VK_SHIFT) {
+  if (IsShiftVk(wparam)) {
     shift_down_ = true;
     shift_tap_ = true;
   } else if (shift_down_) {
-    shift_tap_ = false;  // Shift used as a modifier, not a lone tap
+    // Some apps (Chromium/Electron) never deliver Shift keyup to the TSF sink.
+    // Detect a lone tap here: Shift already released and no other key pressed
+    // while it was down.
+    if (shift_tap_ && !(GetAsyncKeyState(VK_SHIFT) & 0x8000)) {
+      ToggleOnShiftTap();
+    }
+    shift_down_ = false;
+    shift_tap_ = false;
   }
   const bool password = IsPasswordField(context);
   if (password != password_field_) {
@@ -323,10 +336,11 @@ STDMETHODIMP JianhuanTextService::OnTestKeyDown(ITfContext* context, WPARAM wpar
     auto& engine = jianhuan::Engine::instance();
     if (password) {
       prev_ascii_punct_ = engine.get_option(session_, "ascii_punct");
+      prev_ascii_mode_ = engine.get_option(session_, "ascii_mode");
       engine.set_option(session_, "ascii_mode", true);
       engine.set_option(session_, "ascii_punct", true);
     } else {
-      engine.set_option(session_, "ascii_mode", ascii_mode_);
+      engine.set_option(session_, "ascii_mode", prev_ascii_mode_);
       engine.set_option(session_, "ascii_punct", prev_ascii_punct_);
     }
   }
@@ -334,7 +348,7 @@ STDMETHODIMP JianhuanTextService::OnTestKeyDown(ITfContext* context, WPARAM wpar
     *eaten = FALSE;
     return S_OK;
   }
-  *eaten = (!ascii_mode_ && IsPunctToggle(wparam)) || ShouldEatKey(wparam) ? TRUE : FALSE;
+  *eaten = (!AsciiMode() && IsPunctToggle(wparam)) || ShouldEatKey(wparam) ? TRUE : FALSE;
   TsfLog(L"TestKeyDown vk=" + std::to_wstring(wparam) + L" eaten=" + std::to_wstring(*eaten));
   return *eaten ? S_OK : S_FALSE;
 }
@@ -357,11 +371,11 @@ STDMETHODIMP JianhuanTextService::OnKeyDown(ITfContext* context, WPARAM wparam, 
     }
     return S_OK;
   }
-  *eaten = (!ascii_mode_ && IsPunctToggle(wparam)) || ShouldEatKey(wparam) ? TRUE : FALSE;
+  *eaten = (!AsciiMode() && IsPunctToggle(wparam)) || ShouldEatKey(wparam) ? TRUE : FALSE;
   if (!*eaten || !context) {
     return S_OK;
   }
-  if (!ascii_mode_ && IsPunctToggle(wparam)) {
+  if (!AsciiMode() && IsPunctToggle(wparam)) {
     auto& engine = jianhuan::Engine::instance();
     const bool value = !engine.get_option(session_, "ascii_punct");
     engine.set_option(session_, "ascii_punct", value);
@@ -371,7 +385,7 @@ STDMETHODIMP JianhuanTextService::OnKeyDown(ITfContext* context, WPARAM wparam, 
     jianhuan::save_settings(engine.user_data_dir(), settings);
     return S_OK;
   }
-  if (!ascii_mode_ && jianhuan::Engine::instance().is_composing(session_) &&
+  if (!AsciiMode() && jianhuan::Engine::instance().is_composing(session_) &&
       (wparam == VK_OEM_PLUS || wparam == VK_OEM_MINUS || wparam == VK_ADD || wparam == VK_SUBTRACT)) {
     const bool backward = (wparam == VK_OEM_MINUS || wparam == VK_SUBTRACT);
     auto& engine = jianhuan::Engine::instance();
@@ -393,26 +407,36 @@ STDMETHODIMP JianhuanTextService::OnKeyDown(ITfContext* context, WPARAM wparam, 
 
 STDMETHODIMP JianhuanTextService::OnTestKeyUp(ITfContext*, WPARAM wparam, LPARAM, BOOL* eaten) {
   if (!eaten) return E_INVALIDARG;
-  if (wparam == VK_SHIFT) {
-    // Toggle Chinese/English only on a lone Shift tap; never swallow the keyup
-    // so app hotkeys that rely on Shift (e.g. IDEA double-Shift) still fire.
-    if (shift_tap_ && !password_field_ && !jianhuan::Engine::instance().is_composing(session_)) {
-      ascii_mode_ = !ascii_mode_;
-      if (session_ != 0) {
-        jianhuan::Engine::instance().set_option(session_, "ascii_mode", ascii_mode_);
-      }
-    }
-    shift_down_ = false;
-    shift_tap_ = false;
+  if (IsShiftVk(wparam)) {
+    ToggleOnShiftTap();
+    TsfLog(L"KeyUp shift tap_done ascii=" + std::to_wstring(AsciiMode()));
   }
   *eaten = FALSE;
   return S_OK;
 }
 
-STDMETHODIMP JianhuanTextService::OnKeyUp(ITfContext*, WPARAM, LPARAM, BOOL* eaten) {
+STDMETHODIMP JianhuanTextService::OnKeyUp(ITfContext*, WPARAM wparam, LPARAM, BOOL* eaten) {
   if (!eaten) return E_INVALIDARG;
+  if (IsShiftVk(wparam)) {
+    ToggleOnShiftTap();
+  }
   *eaten = FALSE;
   return S_OK;
+}
+
+void JianhuanTextService::ToggleOnShiftTap() {
+  if (shift_tap_ && session_ != 0 && !password_field_ &&
+      !jianhuan::Engine::instance().is_composing(session_)) {
+    auto& engine = jianhuan::Engine::instance();
+    const bool value = !engine.get_option(session_, "ascii_mode");
+    engine.set_option(session_, "ascii_mode", value);
+    jianhuan::Settings settings;
+    jianhuan::load_settings(engine.user_data_dir(), settings);
+    settings.ascii_mode = value;
+    jianhuan::save_settings(engine.user_data_dir(), settings);
+  }
+  shift_down_ = false;
+  shift_tap_ = false;
 }
 
 STDMETHODIMP JianhuanTextService::OnPreservedKey(ITfContext*, REFGUID, BOOL* eaten) {

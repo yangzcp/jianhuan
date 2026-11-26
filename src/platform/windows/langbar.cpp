@@ -16,6 +16,7 @@ constexpr UINT kCmdPunct = 3;
 constexpr UINT kCmdFull = 4;
 constexpr UINT kCmdSettings = 5;
 constexpr UINT kCmdAbout = 6;
+constexpr UINT kCmdAscii = 7;
 }  // namespace
 
 JianhuanLangBarItem::JianhuanLangBarItem() = default;
@@ -76,7 +77,8 @@ STDMETHODIMP JianhuanLangBarItem::GetIcon(HICON* icon) {
 
 STDMETHODIMP JianhuanLangBarItem::GetText(BSTR* text) {
   if (!text) return E_INVALIDARG;
-  *text = SysAllocString(L"简焕");
+  const bool ascii = jianhuan::Engine::instance().get_option(g_current_session, "ascii_mode");
+  *text = SysAllocString(ascii ? L"简焕·英" : L"简焕·中");
   return *text ? S_OK : E_OUTOFMEMORY;
 }
 
@@ -91,6 +93,8 @@ STDMETHODIMP JianhuanLangBarItem::OnClick(TfLBIClick, POINT pt, const RECT*) {
               kCmdPunct, L"英文标点");
   AppendMenuW(menu, MF_STRING | (engine.get_option(g_current_session, "full_shape") ? MF_CHECKED : 0),
               kCmdFull, L"全角");
+  AppendMenuW(menu, MF_STRING | (engine.get_option(g_current_session, "ascii_mode") ? MF_CHECKED : 0),
+              kCmdAscii, L"英文模式");
   AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING, kCmdSettings, L"设置…");
   AppendMenuW(menu, MF_STRING, kCmdAbout, L"关于简焕");
@@ -136,6 +140,13 @@ void JianhuanLangBarItem::ApplyCommand(UINT id) {
       const bool value = !engine.get_option(g_current_session, "full_shape");
       engine.set_option(g_current_session, "full_shape", value);
       settings.full_shape = value;
+      jianhuan::save_settings(engine.user_data_dir(), settings);
+      break;
+    }
+    case kCmdAscii: {
+      const bool value = !engine.get_option(g_current_session, "ascii_mode");
+      engine.set_option(g_current_session, "ascii_mode", value);
+      settings.ascii_mode = value;
       jianhuan::save_settings(engine.user_data_dir(), settings);
       break;
     }
