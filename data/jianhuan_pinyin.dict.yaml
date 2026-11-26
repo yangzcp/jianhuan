@@ -10,5 +10,6 @@ import_tables:
   - jianhuan_poetry
   - jianhuan_emoji
   - jianhuan_english
+  - jianhuan_colloquial
   - jianhuan_user
 ...

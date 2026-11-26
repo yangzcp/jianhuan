@@ -185,6 +185,15 @@ int main(int argc, char** argv) {
   }
   engine.clear_composition(session);
 
+  type(engine, session, "woganj");
+  if (!engine.get_context(session, context) || !has_candidate(context, "我感觉")) {
+    std::cerr << "colloquial sentence regression failed (woganj)\n";
+    engine.destroy_session(session);
+    engine.shutdown();
+    return 1;
+  }
+  engine.clear_composition(session);
+
   if (!engine.select_schema(session, "jianhuan_double_pinyin")) {
     std::cerr << "select jianhuan_double_pinyin failed\n";
     return 1;
