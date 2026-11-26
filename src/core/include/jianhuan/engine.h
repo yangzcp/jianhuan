@@ -13,16 +13,11 @@ struct Candidate {
 
 struct Context {
   std::string preedit;
-  int cursor_pos = 0;
-  int sel_start = 0;
-  int sel_end = 0;
-  std::string commit_preview;
   int page_no = 0;
   int page_size = 0;
   bool is_last_page = false;
   int highlighted = 0;
   std::vector<Candidate> candidates;
-  std::string select_keys;
 };
 
 class Engine {
@@ -39,16 +34,13 @@ class Engine {
   void destroy_session(std::uint64_t session);
 
   bool process_key(std::uint64_t session, int keycode, int mask);
-  bool commit_composition(std::uint64_t session);
   void clear_composition(std::uint64_t session);
 
   bool get_commit(std::uint64_t session, std::string& text);
   bool get_context(std::uint64_t session, Context& context);
   bool is_composing(std::uint64_t session);
   std::string raw_input(std::uint64_t session);
-  void rerank_texts(std::vector<std::string>& texts);
 
-  bool select_candidate(std::uint64_t session, std::size_t index);
   bool select_candidate_on_current_page(std::uint64_t session, std::size_t index);
   bool change_page(std::uint64_t session, bool backward);
 

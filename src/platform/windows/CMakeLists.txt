@@ -44,3 +44,23 @@ if(MSVC)
 endif()
 set_target_properties(jianhuan_tray PROPERTIES WIN32_EXECUTABLE TRUE)
 target_link_options(jianhuan_tray PRIVATE /ENTRY:wmainCRTStartup)
+
+add_executable(jianhuan_password_test
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../../tools/password_test.cpp"
+  guids.cpp
+  dllmain.cpp
+  class_factory.cpp
+  text_service.cpp
+  candidate_window.cpp
+  edit_session.cpp
+  registration.cpp
+  langbar.cpp
+)
+target_link_libraries(jianhuan_password_test PRIVATE jianhuan_core ole32 oleaut32 user32 gdi32 uuid advapi32 gdiplus)
+target_include_directories(jianhuan_password_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(jianhuan_password_test PRIVATE UNICODE _UNICODE)
+if(MSVC)
+  target_compile_options(jianhuan_password_test PRIVATE /utf-8)
+endif()
+target_link_options(jianhuan_password_test PRIVATE /ENTRY:wmainCRTStartup)
+set_target_properties(jianhuan_password_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" WIN32_EXECUTABLE TRUE)

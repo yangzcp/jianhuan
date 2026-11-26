@@ -39,7 +39,9 @@ inline bool ShouldEatKeyPolicy(bool ascii_mode, bool composing, bool ascii_punct
     case VK_SUBTRACT:
       return composing;
     default:
-      return true;
+      // Only swallow printable text keys (to start/continue composition).
+      // Function keys, media keys, and app hotkeys (e.g. Shift+F6) pass through.
+      return keycode >= 0x21 && keycode <= 0x7e;
   }
 }
 

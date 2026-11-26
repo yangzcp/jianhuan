@@ -11,90 +11,29 @@
 #include <filesystem>
 #include <mutex>
 #include <unordered_map>
-#include <cmath>
-#include <climits>
 #include <algorithm>
 #include <fstream>
 
 namespace jianhuan {
 
 struct Engine::Impl {
+  struct SessionRank {
+    std::vector<int> perm;          // displayed index -> merged index
+    int rime_count = 0;             // merged indices < rime_count are rime's
+    std::vector<std::string> injected;
+    std::string pending_commit;     // set when an injected candidate is chosen
+  };
   RimeApi* api = nullptr;
   std::mutex mutex;
   bool initialized = false;
   std::string user_data_dir;
-  std::unordered_map<char32_t, std::uint32_t> uni;
-  std::unordered_map<std::uint64_t, std::uint32_t> bi;
-  std::uint32_t vocab = 0;
-  bool lm_loaded = false;
   std::unordered_map<std::string, std::vector<std::string>> predict;
+  std::unordered_map<std::string, int> predict_len;
   bool predict_loaded = false;
-  std::unordered_map<std::uint64_t, std::vector<int>> perm;
-  std::unordered_map<std::uint64_t, int> rime_count;
-  std::unordered_map<std::uint64_t, std::vector<std::string>> inject;
-  std::unordered_map<std::uint64_t, std::string> pending_commit;
+  std::unordered_map<std::uint64_t, SessionRank> rank;
 };
 
 namespace {
-
-std::u32string DecodeUtf8(const std::string& s) {
-  std::u32string out;
-  for (std::size_t i = 0; i < s.size();) {
-    const unsigned char c = static_cast<unsigned char>(s[i]);
-    char32_t cp = 0;
-    int n = 1;
-    if (c < 0x80) { cp = c; n = 1; }
-    else if ((c & 0xE0) == 0xC0) { cp = c & 0x1F; n = 2; }
-    else if ((c & 0xF0) == 0xE0) { cp = c & 0x0F; n = 3; }
-    else { cp = c & 0x07; n = 4; }
-    for (int k = 1; k < n && i + k < s.size(); k++) {
-      cp = (cp << 6) | (static_cast<unsigned char>(s[i + k]) & 0x3F);
-    }
-    out.push_back(cp);
-    i += n;
-  }
-  return out;
-}
-
-void LoadLm(Engine::Impl* impl, const std::string& path) {
-  std::ifstream file(path);
-  if (!file.is_open()) return;
-  std::string line;
-  while (std::getline(file, line)) {
-    const auto t1 = line.find('\t');
-    if (t1 == std::string::npos) continue;
-    const auto t2 = line.find('\t', t1 + 1);
-    if (t2 == std::string::npos) continue;
-    const std::string type = line.substr(0, t1);
-    const std::string key = line.substr(t1 + 1, t2 - t1 - 1);
-    const std::uint32_t count = static_cast<std::uint32_t>(std::stoul(line.substr(t2 + 1)));
-    const std::u32string chars = DecodeUtf8(key);
-    if (type == "U" && chars.size() == 1) {
-      impl->uni[chars[0]] = count;
-    } else if (type == "B" && chars.size() == 2) {
-      impl->bi[(static_cast<std::uint64_t>(chars[0]) << 32) | chars[1]] = count;
-    }
-  }
-  impl->vocab = static_cast<std::uint32_t>(impl->uni.size());
-  impl->lm_loaded = impl->vocab > 0;
-}
-
-double LmScore(Engine::Impl* impl, const std::string& text) {
-  const std::u32string chars = DecodeUtf8(text);
-  if (chars.empty()) return -1e9;
-  const char32_t bos = 0x02;
-  double sum = 0;
-  char32_t prev = bos;
-  for (char32_t c : chars) {
-    const auto bit = impl->bi.find((static_cast<std::uint64_t>(prev) << 32) | c);
-    const auto uit = impl->uni.find(prev);
-    const double num = (bit != impl->bi.end() ? bit->second : 0) + 1.0;
-    const double den = (uit != impl->uni.end() ? uit->second : 0) + impl->vocab + 1.0;
-    sum += std::log(num / den);
-    prev = c;
-  }
-  return sum / static_cast<double>(chars.size());
-}
 
 void LoadPredict(Engine::Impl* impl, const std::string& path) {
   std::ifstream file(path);
@@ -110,11 +49,17 @@ void LoadPredict(Engine::Impl* impl, const std::string& path) {
     if (text.empty() || code.size() < kMinPrefix) continue;
     for (std::size_t len = kMinPrefix; len <= code.size(); ++len) {
       auto& bucket = impl->predict[code.substr(0, len)];
-      if (bucket.size() >= kMaxPerPrefix) continue;
       if (std::find(bucket.begin(), bucket.end(), text) == bucket.end()) {
         bucket.push_back(text);
+        impl->predict_len[text] = static_cast<int>(code.size());
       }
     }
+  }
+  for (auto& [prefix, bucket] : impl->predict) {
+    std::stable_sort(bucket.begin(), bucket.end(), [&](const std::string& a, const std::string& b) {
+      return impl->predict_len[a] < impl->predict_len[b];
+    });
+    if (bucket.size() > kMaxPerPrefix) bucket.resize(kMaxPerPrefix);
   }
   impl->predict_loaded = !impl->predict.empty();
 }
@@ -160,7 +105,6 @@ bool Engine::initialize(const std::string& shared_data_dir,
   if (std::filesystem::exists(src_phrase) && !std::filesystem::exists(dst_phrase)) {
     std::filesystem::copy_file(src_phrase, dst_phrase, ec);
   }
-  LoadLm(impl_, (std::filesystem::path(shared_data_dir) / "jianhuan_lm.txt").string());
   LoadPredict(impl_, (std::filesystem::path(shared_data_dir) / "jianhuan_predict.txt").string());
 
   RimeApi* api = rime_get_api();
@@ -232,10 +176,7 @@ void Engine::destroy_session(std::uint64_t session) {
     return;
   }
   std::lock_guard<std::mutex> lock(impl_->mutex);
-  impl_->perm.erase(session);
-  impl_->rime_count.erase(session);
-  impl_->inject.erase(session);
-  impl_->pending_commit.erase(session);
+  impl_->rank.erase(session);
   impl_->api->destroy_session(static_cast<RimeSessionId>(session));
 }
 
@@ -247,20 +188,12 @@ bool Engine::process_key(std::uint64_t session, int keycode, int mask) {
   return impl_->api->process_key(static_cast<RimeSessionId>(session), keycode, mask) != False;
 }
 
-bool Engine::commit_composition(std::uint64_t session) {
-  if (!initialized() || session == 0) {
-    return false;
-  }
-  std::lock_guard<std::mutex> lock(impl_->mutex);
-  return impl_->api->commit_composition(static_cast<RimeSessionId>(session)) != False;
-}
-
 void Engine::clear_composition(std::uint64_t session) {
   if (!initialized() || session == 0) {
     return;
   }
   std::lock_guard<std::mutex> lock(impl_->mutex);
-  impl_->pending_commit.erase(session);
+  impl_->rank[session].pending_commit.clear();
   impl_->api->clear_composition(static_cast<RimeSessionId>(session));
 }
 
@@ -270,10 +203,10 @@ bool Engine::get_commit(std::uint64_t session, std::string& text) {
     return false;
   }
   std::lock_guard<std::mutex> lock(impl_->mutex);
-  const auto pc = impl_->pending_commit.find(session);
-  if (pc != impl_->pending_commit.end()) {
-    text = pc->second;
-    impl_->pending_commit.erase(pc);
+  auto& pending = impl_->rank[session].pending_commit;
+  if (!pending.empty()) {
+    text = pending;
+    pending.clear();
     return true;
   }
   RimeCommit commit = {};
@@ -303,76 +236,63 @@ bool Engine::get_context(std::uint64_t session, Context& context) {
   if (ctx.composition.preedit) {
     context.preedit = ctx.composition.preedit;
   }
-  context.cursor_pos = ctx.composition.cursor_pos;
-  context.sel_start = ctx.composition.sel_start;
-  context.sel_end = ctx.composition.sel_end;
   context.page_no = ctx.menu.page_no;
   context.page_size = ctx.menu.page_size;
   context.is_last_page = ctx.menu.is_last_page != False;
   context.highlighted = ctx.menu.highlighted_candidate_index;
-  if (ctx.menu.select_keys) {
-    context.select_keys = ctx.menu.select_keys;
-  }
   for (int i = 0; i < ctx.menu.num_candidates; ++i) {
     const RimeCandidate& candidate = ctx.menu.candidates[i];
     context.candidates.push_back({candidate.text ? candidate.text : "",
                                   candidate.comment ? candidate.comment : ""});
   }
-  if (RIME_STRUCT_HAS_MEMBER(ctx, ctx.commit_text_preview) && ctx.commit_text_preview) {
-    context.commit_preview = ctx.commit_text_preview;
-  }
 
   const int n = static_cast<int>(context.candidates.size());
+  std::vector<int> lead;  // merged indices placed before rime's native order
   std::vector<std::string> injected;
   const char* raw = impl_->api->get_input(static_cast<RimeSessionId>(session));
   const std::string input = raw ? raw : "";
-  if (impl_->predict_loaded && input.size() >= 5) {
+  if (context.page_no == 0 && impl_->predict_loaded && input.size() >= 5) {
     const auto pit = impl_->predict.find(input);
-    if (pit != impl_->predict.end()) {
-      for (const auto& text : pit->second) {
-        bool present = false;
-        for (const auto& c : context.candidates) {
-          if (c.text == text) { present = true; break; }
-        }
-        if (!present) {
-          context.candidates.push_back({text, ""});
-          injected.push_back(text);
+    if (pit != impl_->predict.end() && !pit->second.empty()) {
+      const std::string& base = pit->second.front();
+      const auto at = std::find_if(context.candidates.begin(), context.candidates.end(),
+                                   [&](const Candidate& c) { return c.text == base; });
+      if (at != context.candidates.end()) {
+        lead.push_back(static_cast<int>(at - context.candidates.begin()));
+      } else {
+        for (const auto& text : pit->second) {
+          const bool present = std::any_of(context.candidates.begin(), context.candidates.end(),
+                                           [&](const Candidate& c) { return c.text == text; });
+          if (!present) {
+            lead.push_back(static_cast<int>(context.candidates.size()));
+            context.candidates.push_back({text, ""});
+            injected.push_back(text);
+          }
         }
       }
     }
   }
-  const int m = static_cast<int>(context.candidates.size());
-  std::vector<int> order(m);
-  for (int i = 0; i < m; ++i) order[i] = i;
-  auto score = [&](int idx) {
-    if (idx >= n) return 100.0 - static_cast<double>(idx - n);
-    return impl_->lm_loaded ? LmScore(impl_, context.candidates[idx].text) : 0.0;
-  };
-  if (m >= 2) {
-    std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
-      return score(a) > score(b);
-    });
+  std::vector<int> order = lead;
+  for (int i = 0; i < n; ++i) {
+    if (std::find(lead.begin(), lead.end(), i) == lead.end()) order.push_back(i);
   }
-  std::vector<Candidate> reordered;
-  reordered.reserve(m);
-  std::vector<int> inverse(m, 0);
-  for (int d = 0; d < m; ++d) {
-    reordered.push_back(context.candidates[order[d]]);
-    inverse[order[d]] = d;
-  }
-  context.candidates = std::move(reordered);
-  if (context.highlighted >= 0 && context.highlighted < n) {
-    context.highlighted = inverse[context.highlighted];
-  }
+  std::vector<Candidate> ranked;
+  ranked.reserve(order.size());
+  for (int idx : order) ranked.push_back(context.candidates[idx]);
   const int page = context.page_size > 0 ? context.page_size : 5;
-  if (static_cast<int>(context.candidates.size()) > page) {
-    context.candidates.resize(page);
+  if (static_cast<int>(ranked.size()) > page) {
+    ranked.resize(page);
     order.resize(page);
-    if (context.highlighted >= page) context.highlighted = 0;
   }
-  impl_->perm[session] = std::move(order);
-  impl_->rime_count[session] = n;
-  impl_->inject[session] = std::move(injected);
+  const auto hi = std::find(order.begin(), order.end(), context.highlighted);
+  context.highlighted = hi != order.end() ? static_cast<int>(hi - order.begin()) : 0;
+  context.candidates = std::move(ranked);
+
+  auto& r = impl_->rank[session];
+  r.perm = std::move(order);
+  r.rime_count = n;
+  r.injected = std::move(injected);
+  r.pending_commit.clear();
 
   impl_->api->free_context(&ctx);
   return true;
@@ -402,43 +322,22 @@ std::string Engine::raw_input(std::uint64_t session) {
   return input ? std::string(input) : std::string{};
 }
 
-void Engine::rerank_texts(std::vector<std::string>& texts) {
-  if (!impl_ || !impl_->lm_loaded || texts.size() < 2) {
-    return;
-  }
-  std::stable_sort(texts.begin(), texts.end(), [this](const std::string& a, const std::string& b) {
-    return LmScore(impl_, a) > LmScore(impl_, b);
-  });
-}
-
-bool Engine::select_candidate(std::uint64_t session, std::size_t index) {
-  if (!initialized() || session == 0) {
-    return false;
-  }
-  std::lock_guard<std::mutex> lock(impl_->mutex);
-  return impl_->api->select_candidate(static_cast<RimeSessionId>(session), index) != False;
-}
-
 bool Engine::select_candidate_on_current_page(std::uint64_t session, std::size_t index) {
   if (!initialized() || session == 0) {
     return false;
   }
   std::lock_guard<std::mutex> lock(impl_->mutex);
-  int merged = static_cast<int>(index);
-  const auto it = impl_->perm.find(session);
-  if (it != impl_->perm.end() && index < it->second.size()) {
-    merged = it->second[index];
+  const auto& r = impl_->rank[session];
+  if (r.perm.empty()) {
+    return impl_->api->select_candidate_on_current_page(static_cast<RimeSessionId>(session), index) != False;
   }
-  int n = INT_MAX;
-  const auto nit = impl_->rime_count.find(session);
-  if (nit != impl_->rime_count.end()) n = nit->second;
-  if (merged < n) {
+  const int merged = index < r.perm.size() ? r.perm[index] : static_cast<int>(index);
+  if (merged < r.rime_count) {
     return impl_->api->select_candidate_on_current_page(static_cast<RimeSessionId>(session), merged) != False;
   }
-  const auto& inj = impl_->inject[session];
-  const int j = merged - n;
-  if (j >= 0 && j < static_cast<int>(inj.size())) {
-    impl_->pending_commit[session] = inj[j];
+  const int j = merged - r.rime_count;
+  if (j >= 0 && j < static_cast<int>(r.injected.size())) {
+    impl_->rank[session].pending_commit = r.injected[j];
     impl_->api->clear_composition(static_cast<RimeSessionId>(session));
     return true;
   }

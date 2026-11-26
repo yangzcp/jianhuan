@@ -26,7 +26,7 @@ int wmain() {
   Gdiplus::GdiplusStartup(&token, &input, nullptr);
   CandidateWindow window;
   const std::vector<std::string> items = {"我感觉", "我感觉好", "我感觉冷", "我感觉热", "我感觉累", "woganj"};
-  window.Show(200, 200, items, 0, 0, false, "wo ga nj");
+  window.Show(200, 200, items, 0);
   const DWORD start = GetTickCount();
   while (GetTickCount() - start < 800) {
     MSG msg = {};

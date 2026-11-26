@@ -1,6 +1,8 @@
 #include "text_service.h"
 
 #include <objbase.h>
+#include <inputscope.h>
+#include <uiautomation.h>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
@@ -103,6 +105,9 @@ JianhuanTextService::~JianhuanTextService() {
   }
   if (thread_mgr_) {
     thread_mgr_->Release();
+  }
+  if (uia_) {
+    uia_->Release();
   }
   InterlockedDecrement(&g_dll_ref);
 }
@@ -258,8 +263,77 @@ bool JianhuanTextService::ShouldEatKey(WPARAM wparam) const {
       keycode);
 }
 
-STDMETHODIMP JianhuanTextService::OnTestKeyDown(ITfContext*, WPARAM wparam, LPARAM, BOOL* eaten) {
+bool JianhuanTextService::IsPasswordField(ITfContext* context) {
+  if (context) {
+    ITfInputScope* scope = nullptr;
+    if (SUCCEEDED(context->QueryInterface(__uuidof(ITfInputScope), reinterpret_cast<void**>(&scope))) && scope) {
+      InputScope* list = nullptr;
+      UINT count = 0;
+      bool found = false;
+      if (SUCCEEDED(scope->GetInputScopes(&list, &count)) && list) {
+        for (UINT i = 0; i < count; ++i) {
+          if (list[i] == IS_PASSWORD) { found = true; break; }
+        }
+        CoTaskMemFree(list);
+      }
+      scope->Release();
+      if (found) return true;
+    }
+  }
+  const HWND focus = GetFocus();
+  if (focus) {
+    wchar_t cls[64] = {};
+    GetClassNameW(focus, cls, 64);
+    if (wcsstr(cls, L"Edit")) {
+      if (GetWindowLongW(focus, GWL_STYLE) & ES_PASSWORD) return true;
+      if (SendMessageW(focus, EM_GETPASSWORDCHAR, 0, 0) != 0) return true;
+    }
+    if (focus == password_probe_hwnd_) return password_probe_result_;
+    password_probe_hwnd_ = focus;
+    password_probe_result_ = false;
+    if (!uia_) {
+      CoCreateInstance(CLSID_CUIAutomation, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&uia_));
+    }
+    if (uia_) {
+      IUIAutomationElement* elem = nullptr;
+      if (SUCCEEDED(uia_->GetFocusedElement(&elem)) && elem) {
+        BOOL is_password = FALSE;
+        if (SUCCEEDED(elem->get_CurrentIsPassword(&is_password))) {
+          password_probe_result_ = is_password != FALSE;
+        }
+        elem->Release();
+      }
+    }
+    return password_probe_result_;
+  }
+  return false;
+}
+
+STDMETHODIMP JianhuanTextService::OnTestKeyDown(ITfContext* context, WPARAM wparam, LPARAM, BOOL* eaten) {
   if (!eaten) return E_INVALIDARG;
+  if (wparam == VK_SHIFT) {
+    shift_down_ = true;
+    shift_tap_ = true;
+  } else if (shift_down_) {
+    shift_tap_ = false;  // Shift used as a modifier, not a lone tap
+  }
+  const bool password = IsPasswordField(context);
+  if (password != password_field_) {
+    password_field_ = password;
+    auto& engine = jianhuan::Engine::instance();
+    if (password) {
+      prev_ascii_punct_ = engine.get_option(session_, "ascii_punct");
+      engine.set_option(session_, "ascii_mode", true);
+      engine.set_option(session_, "ascii_punct", true);
+    } else {
+      engine.set_option(session_, "ascii_mode", ascii_mode_);
+      engine.set_option(session_, "ascii_punct", prev_ascii_punct_);
+    }
+  }
+  if (password_field_) {
+    *eaten = FALSE;
+    return S_OK;
+  }
   *eaten = (!ascii_mode_ && IsPunctToggle(wparam)) || ShouldEatKey(wparam) ? TRUE : FALSE;
   TsfLog(L"TestKeyDown vk=" + std::to_wstring(wparam) + L" eaten=" + std::to_wstring(*eaten));
   return *eaten ? S_OK : S_FALSE;
@@ -267,6 +341,22 @@ STDMETHODIMP JianhuanTextService::OnTestKeyDown(ITfContext*, WPARAM wparam, LPAR
 
 STDMETHODIMP JianhuanTextService::OnKeyDown(ITfContext* context, WPARAM wparam, LPARAM lparam, BOOL* eaten) {
   if (!eaten) return E_INVALIDARG;
+  // password_field_ was resolved by OnTestKeyDown for this same keystroke.
+  if (password_field_) {
+    *eaten = FALSE;
+    if (composing_ || composition_) {
+      jianhuan::Engine::instance().clear_composition(session_);
+      candidate_.Hide();
+      composing_ = false;
+      auto* refresh = new (std::nothrow) JianhuanEditSession(this, context, 0, 0);
+      if (refresh) {
+        HRESULT hr = S_OK;
+        context->RequestEditSession(client_id_, refresh, TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
+        refresh->Release();
+      }
+    }
+    return S_OK;
+  }
   *eaten = (!ascii_mode_ && IsPunctToggle(wparam)) || ShouldEatKey(wparam) ? TRUE : FALSE;
   if (!*eaten || !context) {
     return S_OK;
@@ -288,12 +378,7 @@ STDMETHODIMP JianhuanTextService::OnKeyDown(ITfContext* context, WPARAM wparam, 
     engine.change_page(session_, backward);
     jianhuan::Context c;
     if (engine.get_context(session_, c) && have_last_rect_) {
-      std::vector<std::string> candidates;
-      for (const auto& item : c.candidates) candidates.push_back(item.text);
-      const std::string raw = engine.raw_input(session_);
-      if (!raw.empty()) candidates.push_back(raw);
-      candidate_.Show(last_rect_.left, last_rect_.bottom, candidates, c.highlighted,
-                      c.page_no, c.is_last_page, c.preedit);
+      ShowCandidates(c, last_rect_.left, last_rect_.bottom);
     }
     return S_OK;
   }
@@ -308,20 +393,25 @@ STDMETHODIMP JianhuanTextService::OnKeyDown(ITfContext* context, WPARAM wparam, 
 
 STDMETHODIMP JianhuanTextService::OnTestKeyUp(ITfContext*, WPARAM wparam, LPARAM, BOOL* eaten) {
   if (!eaten) return E_INVALIDARG;
-  *eaten = (wparam == VK_SHIFT && !jianhuan::Engine::instance().is_composing(session_)) ? TRUE : FALSE;
+  if (wparam == VK_SHIFT) {
+    // Toggle Chinese/English only on a lone Shift tap; never swallow the keyup
+    // so app hotkeys that rely on Shift (e.g. IDEA double-Shift) still fire.
+    if (shift_tap_ && !password_field_ && !jianhuan::Engine::instance().is_composing(session_)) {
+      ascii_mode_ = !ascii_mode_;
+      if (session_ != 0) {
+        jianhuan::Engine::instance().set_option(session_, "ascii_mode", ascii_mode_);
+      }
+    }
+    shift_down_ = false;
+    shift_tap_ = false;
+  }
+  *eaten = FALSE;
   return S_OK;
 }
 
-STDMETHODIMP JianhuanTextService::OnKeyUp(ITfContext*, WPARAM wparam, LPARAM, BOOL* eaten) {
+STDMETHODIMP JianhuanTextService::OnKeyUp(ITfContext*, WPARAM, LPARAM, BOOL* eaten) {
   if (!eaten) return E_INVALIDARG;
   *eaten = FALSE;
-  if (wparam == VK_SHIFT && !jianhuan::Engine::instance().is_composing(session_)) {
-    ascii_mode_ = !ascii_mode_;
-    if (session_ != 0) {
-      jianhuan::Engine::instance().set_option(session_, "ascii_mode", ascii_mode_);
-    }
-    *eaten = TRUE;
-  }
   return S_OK;
 }
 
@@ -364,12 +454,7 @@ HRESULT JianhuanTextService::HandleKey(TfEditCookie cookie, ITfContext* context,
     const int disp = keycode - '1';
     const int n = static_cast<int>(c.candidates.size());
     if (!raw.empty() && disp == n) {
-      InsertText(cookie, context, raw);
-      engine.clear_composition(session_);
-      EndComposition(cookie);
-      candidate_.Hide();
-      composing_ = false;
-      return S_OK;
+      return CommitAndFinish(cookie, context, raw, true);
     }
     if (disp < n) {
       engine.select_candidate_on_current_page(session_, static_cast<std::size_t>(disp));
@@ -384,12 +469,7 @@ HRESULT JianhuanTextService::HandleKey(TfEditCookie cookie, ITfContext* context,
       const int hi = c.highlighted < 0 ? 0 : c.highlighted;
       engine.select_candidate_on_current_page(session_, static_cast<std::size_t>(hi));
     } else if (!raw.empty()) {
-      InsertText(cookie, context, raw);
-      engine.clear_composition(session_);
-      EndComposition(cookie);
-      candidate_.Hide();
-      composing_ = false;
-      return S_OK;
+      return CommitAndFinish(cookie, context, raw, true);
     } else {
       engine.process_key(session_, keycode, mask);
     }
@@ -399,10 +479,7 @@ HRESULT JianhuanTextService::HandleKey(TfEditCookie cookie, ITfContext* context,
 
   std::string commit;
   if (engine.get_commit(session_, commit)) {
-    InsertText(cookie, context, commit);
-    EndComposition(cookie);
-    candidate_.Hide();
-    composing_ = false;
+    CommitAndFinish(cookie, context, commit, false);
   }
 
   jianhuan::Context engine_context;
@@ -487,19 +564,29 @@ HRESULT JianhuanTextService::UpdateComposition(TfEditCookie cookie, ITfContext* 
   last_rect_ = rect;
   have_last_rect_ = true;
 
-  std::vector<std::string> candidates;
-  for (const auto& candidate : engine_context.candidates) {
-    candidates.push_back(candidate.text);
-  }
-  const std::string raw = jianhuan::Engine::instance().raw_input(session_);
-  if (!raw.empty()) {
-    candidates.push_back(raw);
-  }
-  candidate_.Show(rect.left, rect.bottom, candidates, engine_context.highlighted,
-                  engine_context.page_no, engine_context.is_last_page, engine_context.preedit);
-  TsfLog(L"Show candidates=" + std::to_wstring(candidates.size()) + L" preedit_len=" +
+  ShowCandidates(engine_context, rect.left, rect.bottom);
+  TsfLog(L"Show candidates=" + std::to_wstring(engine_context.candidates.size()) + L" preedit_len=" +
          std::to_wstring(engine_context.preedit.size()));
   range->Release();
+  return S_OK;
+}
+
+void JianhuanTextService::ShowCandidates(const jianhuan::Context& c, int x, int y) {
+  std::vector<std::string> items;
+  items.reserve(c.candidates.size() + 1);
+  for (const auto& candidate : c.candidates) items.push_back(candidate.text);
+  const std::string raw = jianhuan::Engine::instance().raw_input(session_);
+  if (!raw.empty()) items.push_back(raw);
+  candidate_.Show(x, y, items, c.highlighted);
+}
+
+HRESULT JianhuanTextService::CommitAndFinish(TfEditCookie cookie, ITfContext* context,
+                                             const std::string& text, bool clear) {
+  InsertText(cookie, context, text);
+  if (clear) jianhuan::Engine::instance().clear_composition(session_);
+  EndComposition(cookie);
+  candidate_.Hide();
+  composing_ = false;
   return S_OK;
 }
 

@@ -45,6 +45,8 @@ void AddRoundedRect(Gdiplus::GraphicsPath& path, const Gdiplus::RectF& rect, flo
 CandidateWindow::~CandidateWindow() {
   Hide();
   if (hwnd_) DestroyWindow(hwnd_);
+  delete font_;
+  delete emoji_font_;
   if (gdiplus_ready_) Gdiplus::GdiplusShutdown(gdiplus_token_);
 }
 
@@ -65,23 +67,28 @@ bool CandidateWindow::EnsureGdiplus() {
   if (gdiplus_ready_) return true;
   Gdiplus::GdiplusStartupInput input;
   gdiplus_ready_ = Gdiplus::GdiplusStartup(&gdiplus_token_, &input, nullptr) == Gdiplus::Ok;
-  return gdiplus_ready_;
+  if (!gdiplus_ready_) return false;
+  font_ = new Gdiplus::Font(L"Microsoft YaHei UI", 22, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+  emoji_font_ = new Gdiplus::Font(L"Segoe UI Emoji", 22, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+  const auto read_metrics = [](Gdiplus::Font* f, FontMetrics& m) {
+    Gdiplus::FontFamily family;
+    f->GetFamily(&family);
+    m.em = static_cast<float>(family.GetEmHeight(Gdiplus::FontStyleRegular));
+    m.ascent = static_cast<float>(family.GetCellAscent(Gdiplus::FontStyleRegular));
+    m.descent = static_cast<float>(family.GetCellDescent(Gdiplus::FontStyleRegular));
+    m.size = f->GetSize();
+  };
+  read_metrics(font_, font_m_);
+  read_metrics(emoji_font_, emoji_m_);
+  return true;
 }
 
-std::wstring CandidateWindow::PageLabel() const {
-  return L"";
-}
-
-void CandidateWindow::Show(int x, int y, const std::vector<std::string>& items, int highlighted,
-                           int page_no, bool is_last_page, const std::string& preedit) {
-  (void)preedit;
+void CandidateWindow::Show(int x, int y, const std::vector<std::string>& items, int highlighted) {
   EnsureWindow();
   if (!EnsureGdiplus()) return;
   items_.clear();
   for (const auto& item : items) items_.push_back(ToWide(item));
   highlighted_ = highlighted;
-  page_no_ = page_no;
-  is_last_page_ = is_last_page;
   Render(x, y);
 }
 
@@ -92,32 +99,26 @@ void CandidateWindow::Hide() {
 void CandidateWindow::Render(int x, int y) {
   HDC screen = GetDC(nullptr);
   Gdiplus::Graphics measure(screen);
-  Gdiplus::Font font(L"Microsoft YaHei UI", 22, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
-  Gdiplus::Font emoji_font(L"Segoe UI Emoji", 22, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
-  Gdiplus::Font small_font(L"Microsoft YaHei UI", 16, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
   measure.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
 
-  std::vector<float> widths;
-  std::vector<float> num_widths;
+  const std::size_t count = items_.size();
+  std::vector<bool> emoji(count);
+  std::vector<float> widths(count);
+  std::vector<float> num_widths(count);
   float items_width = 0;
-  for (std::size_t i = 0; i < items_.size(); ++i) {
+  for (std::size_t i = 0; i < count; ++i) {
+    emoji[i] = HasEmoji(items_[i]);
     const std::wstring num = std::to_wstring(i + 1);
-    Gdiplus::Font* word_font = HasEmoji(items_[i]) ? &emoji_font : &font;
     Gdiplus::RectF num_bounds;
-    measure.MeasureString(num.c_str(), static_cast<INT>(num.size()), &font, Gdiplus::PointF(0, 0), &num_bounds);
+    measure.MeasureString(num.c_str(), static_cast<INT>(num.size()), font_, Gdiplus::PointF(0, 0), &num_bounds);
     Gdiplus::RectF word_bounds;
-    measure.MeasureString(items_[i].c_str(), static_cast<INT>(items_[i].size()), word_font, Gdiplus::PointF(0, 0), &word_bounds);
-    const float width = num_bounds.Width + kNumGap + word_bounds.Width + kItemPadding * 2;
-    widths.push_back(width);
-    num_widths.push_back(num_bounds.Width);
-    items_width += width + kSpacing;
+    measure.MeasureString(items_[i].c_str(), static_cast<INT>(items_[i].size()),
+                          emoji[i] ? emoji_font_ : font_, Gdiplus::PointF(0, 0), &word_bounds);
+    widths[i] = num_bounds.Width + kNumGap + word_bounds.Width + kItemPadding * 2;
+    num_widths[i] = num_bounds.Width;
+    items_width += widths[i] + kSpacing;
   }
-  const std::wstring page = PageLabel();
-  Gdiplus::RectF page_bounds;
-  measure.MeasureString(page.c_str(), static_cast<INT>(page.size()), &small_font, Gdiplus::PointF(0, 0), &page_bounds);
-  const float page_width = page.empty() ? 0.0f : page_bounds.Width + 8;
-  const float content_width = std::max(items_width + (page.empty() ? 0.0f : page_width + 12), 40.0f);
-  const int width = static_cast<int>(content_width) + kPaddingX * 2;
+  const int width = static_cast<int>(std::max(items_width, 40.0f)) + kPaddingX * 2;
   const int height = kItemHeight + 12;
   x = std::max(0, std::min(x, GetSystemMetrics(SM_CXSCREEN) - width));
   y = std::max(0, std::min(y, GetSystemMetrics(SM_CYSCREEN) - height));
@@ -148,8 +149,8 @@ void CandidateWindow::Render(int x, int y) {
 
   float cursor_x = kPaddingX;
   const float cursor_y = 6;
-  for (std::size_t i = 0; i < items_.size(); ++i) {
-    const std::wstring label = std::to_wstring(i + 1) + L" " + items_[i];
+  const float center_y = cursor_y + kItemHeight / 2.0f;
+  for (std::size_t i = 0; i < count; ++i) {
     const Gdiplus::RectF item_rect(cursor_x, cursor_y, widths[i], static_cast<float>(kItemHeight));
     Gdiplus::SolidBrush text_brush(Gdiplus::Color(45, 160, 60));
     if (static_cast<int>(i) == highlighted_) {
@@ -159,39 +160,23 @@ void CandidateWindow::Render(int x, int y) {
       graphics.FillPath(&highlight, &pill);
       text_brush.SetColor(Gdiplus::Color(105, 105, 215));
     }
-    Gdiplus::RectF text_rect = item_rect;
-    text_rect.X += kItemPadding;
-    text_rect.Width -= kItemPadding * 2;
-    Gdiplus::Font* word_font = HasEmoji(items_[i]) ? &emoji_font : &font;
-    const float center_y = item_rect.Y + kItemHeight / 2.0f;
-    auto draw_y = [&](Gdiplus::Font* f) {
-      Gdiplus::FontFamily family;
-      f->GetFamily(&family);
-      const float em = static_cast<float>(family.GetEmHeight(Gdiplus::FontStyleRegular));
-      const float asc = static_cast<float>(family.GetCellAscent(Gdiplus::FontStyleRegular));
-      const float desc = static_cast<float>(family.GetCellDescent(Gdiplus::FontStyleRegular));
-      const float fs = f->GetSize();
-      return center_y - (asc + desc) * fs / em / 2.0f;
-    };
+    const float text_x = item_rect.X + kItemPadding;
     const std::wstring num = std::to_wstring(i + 1);
-    graphics.DrawString(num.c_str(), static_cast<INT>(num.size()), &font,
-                        Gdiplus::PointF(text_rect.X, draw_y(&font)), &text_brush);
-    const float word_y = draw_y(word_font) + (word_font == &emoji_font ? -2.0f : 0.0f);
+    graphics.DrawString(num.c_str(), static_cast<INT>(num.size()), font_,
+                        Gdiplus::PointF(text_x, font_m_.MidlineY(center_y)), &text_brush);
+    Gdiplus::Font* word_font = emoji[i] ? emoji_font_ : font_;
+    const FontMetrics& m = emoji[i] ? emoji_m_ : font_m_;
+    const float word_y = m.MidlineY(center_y) + (emoji[i] ? -2.0f : 0.0f);
     graphics.DrawString(items_[i].c_str(), static_cast<INT>(items_[i].size()), word_font,
-                        Gdiplus::PointF(text_rect.X + num_widths[i] + kNumGap, word_y), &text_brush);
+                        Gdiplus::PointF(text_x + num_widths[i] + kNumGap, word_y), &text_brush);
     cursor_x += widths[i] + kSpacing;
   }
-
-  Gdiplus::SolidBrush gray(Gdiplus::Color(120, 130, 140));
-  graphics.DrawString(page.c_str(), static_cast<INT>(page.size()), &small_font,
-                      Gdiplus::PointF(width - kPaddingX - page_width, cursor_y + 8), &gray);
 
   POINT position = {x, y};
   SIZE size = {width, height};
   POINT source = {0, 0};
   BLENDFUNCTION blend = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
-  const BOOL ok = UpdateLayeredWindow(hwnd_, screen, &position, &size, memory, &source, 0, &blend, ULW_ALPHA);
-  (void)ok;
+  UpdateLayeredWindow(hwnd_, screen, &position, &size, memory, &source, 0, &blend, ULW_ALPHA);
   SetWindowPos(hwnd_, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
   ShowWindow(hwnd_, SW_SHOWNOACTIVATE);
 

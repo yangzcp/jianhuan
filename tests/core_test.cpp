@@ -6,6 +6,14 @@
 #include <iostream>
 #include <string>
 
+#define CHECK(cond)                                                  \
+  do {                                                               \
+    if (!(cond)) {                                                   \
+      std::cerr << "check failed: " #cond " (line " << __LINE__ << ")\n"; \
+      return 1;                                                      \
+    }                                                                \
+  } while (0)
+
 namespace {
 
 bool has_candidate(const jianhuan::Context& context, const std::string& text) {
@@ -29,24 +37,27 @@ int main(int argc, char** argv) {
   using jianhuan::ShouldEatKeyPolicy;
   const bool eat = true;
   const bool pass = false;
-  assert(ShouldEatKeyPolicy(false, false, false, 'A', true, false, false, 'a') == pass);
-  assert(ShouldEatKeyPolicy(false, false, false, 'V', true, false, false, 'v') == pass);
-  assert(ShouldEatKeyPolicy(false, false, false, 'C', true, false, false, 'c') == pass);
-  assert(ShouldEatKeyPolicy(false, true, false, 'A', true, false, false, 'a') == pass);
-  assert(ShouldEatKeyPolicy(false, false, false, 'A', false, false, false, 'a') == eat);
-  assert(ShouldEatKeyPolicy(true, false, false, 'A', false, false, false, 'a') == pass);
-  assert(ShouldEatKeyPolicy(false, false, false, VK_SPACE, false, false, false, ' ') == pass);
-  assert(ShouldEatKeyPolicy(false, true, false, VK_SPACE, false, false, false, ' ') == eat);
-  assert(ShouldEatKeyPolicy(false, false, false, VK_BACK, false, false, false, 0xff08) == pass);
-  assert(ShouldEatKeyPolicy(false, true, false, VK_BACK, false, false, false, 0xff08) == eat);
-  assert(ShouldEatKeyPolicy(false, false, false, VK_LEFT, false, false, false, 0xff51) == pass);
-  assert(ShouldEatKeyPolicy(false, true, false, VK_LEFT, false, false, false, 0xff51) == eat);
-  assert(ShouldEatKeyPolicy(false, false, true, VK_OEM_COMMA, false, false, false, ',') == pass);
-  assert(ShouldEatKeyPolicy(false, false, false, VK_OEM_COMMA, false, false, false, ',') == eat);
-  assert(ShouldEatKeyPolicy(false, true, false, VK_OEM_PLUS, false, false, false, '=') == eat);
-  assert(ShouldEatKeyPolicy(false, false, false, VK_OEM_PLUS, false, false, false, '=') == pass);
-  assert(ShouldEatKeyPolicy(false, false, false, '5', false, false, false, '5') == pass);
-  assert(ShouldEatKeyPolicy(false, true, false, '5', false, false, false, '5') == eat);
+  CHECK(ShouldEatKeyPolicy(false, false, false, 'A', true, false, false, 'a') == pass);
+  CHECK(ShouldEatKeyPolicy(false, false, false, 'V', true, false, false, 'v') == pass);
+  CHECK(ShouldEatKeyPolicy(false, false, false, 'C', true, false, false, 'c') == pass);
+  CHECK(ShouldEatKeyPolicy(false, true, false, 'A', true, false, false, 'a') == pass);
+  CHECK(ShouldEatKeyPolicy(false, false, false, 'A', false, false, false, 'a') == eat);
+  CHECK(ShouldEatKeyPolicy(true, false, false, 'A', false, false, false, 'a') == pass);
+  CHECK(ShouldEatKeyPolicy(false, false, false, VK_SPACE, false, false, false, ' ') == pass);
+  CHECK(ShouldEatKeyPolicy(false, true, false, VK_SPACE, false, false, false, ' ') == eat);
+  CHECK(ShouldEatKeyPolicy(false, false, false, VK_BACK, false, false, false, 0xff08) == pass);
+  CHECK(ShouldEatKeyPolicy(false, true, false, VK_BACK, false, false, false, 0xff08) == eat);
+  CHECK(ShouldEatKeyPolicy(false, false, false, VK_LEFT, false, false, false, 0xff51) == pass);
+  CHECK(ShouldEatKeyPolicy(false, true, false, VK_LEFT, false, false, false, 0xff51) == eat);
+  CHECK(ShouldEatKeyPolicy(false, false, true, VK_OEM_COMMA, false, false, false, ',') == pass);
+  CHECK(ShouldEatKeyPolicy(false, false, false, VK_OEM_COMMA, false, false, false, ',') == eat);
+  CHECK(ShouldEatKeyPolicy(false, true, false, VK_OEM_PLUS, false, false, false, '=') == eat);
+  CHECK(ShouldEatKeyPolicy(false, false, false, VK_OEM_PLUS, false, false, false, '=') == pass);
+  CHECK(ShouldEatKeyPolicy(false, false, false, '5', false, false, false, '5') == pass);
+  CHECK(ShouldEatKeyPolicy(false, true, false, '5', false, false, false, '5') == eat);
+  CHECK(ShouldEatKeyPolicy(false, false, false, VK_F6, false, false, false, 0) == pass);
+  CHECK(ShouldEatKeyPolicy(false, true, false, VK_F6, false, false, false, 0) == pass);
+  CHECK(ShouldEatKeyPolicy(false, false, false, VK_INSERT, false, false, false, 0) == pass);
   std::cerr << "key policy ok\n";
 
   if (argc < 2) {
@@ -161,6 +172,21 @@ int main(int argc, char** argv) {
   engine.get_context(session, page1);
   if (page1.page_no != page0.page_no + 1 || page1.candidates.empty()) {
     std::cerr << "paging regression failed\n";
+    engine.destroy_session(session);
+    engine.shutdown();
+    return 1;
+  }
+  engine.clear_composition(session);
+
+  type(engine, session, "woganj");
+  jianhuan::Context inj0;
+  engine.get_context(session, inj0);
+  engine.change_page(session, false);
+  jianhuan::Context inj1;
+  engine.get_context(session, inj1);
+  if (inj1.page_no != inj0.page_no + 1 || inj1.candidates.empty() ||
+      inj1.candidates[0].text == inj0.candidates[0].text) {
+    std::cerr << "paging with prediction injection regression failed\n";
     engine.destroy_session(session);
     engine.shutdown();
     return 1;

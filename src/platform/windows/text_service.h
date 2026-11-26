@@ -6,6 +6,8 @@
 #include "candidate_window.h"
 #include "jianhuan/engine.h"
 
+struct IUIAutomation;
+
 class JianhuanTextService : public ITfTextInputProcessor,
                         public ITfKeyEventSink,
                         public ITfCompositionSink {
@@ -36,7 +38,10 @@ class JianhuanTextService : public ITfTextInputProcessor,
   HRESULT UpdateComposition(TfEditCookie cookie, ITfContext* context, const jianhuan::Context& engine_context);
   HRESULT InsertText(TfEditCookie cookie, ITfContext* context, const std::string& text);
   void EndComposition(TfEditCookie cookie);
+  void ShowCandidates(const jianhuan::Context& c, int x, int y);
+  HRESULT CommitAndFinish(TfEditCookie cookie, ITfContext* context, const std::string& text, bool clear);
   bool ShouldEatKey(WPARAM wparam) const;
+  bool IsPasswordField(ITfContext* context);
 
   LONG ref_ = 1;
   ITfThreadMgr* thread_mgr_ = nullptr;
@@ -49,4 +54,11 @@ class JianhuanTextService : public ITfTextInputProcessor,
   CandidateWindow candidate_;
   bool ascii_mode_ = false;
   bool composing_ = false;
+  bool password_field_ = false;
+  bool prev_ascii_punct_ = false;
+  bool shift_down_ = false;
+  bool shift_tap_ = false;
+  IUIAutomation* uia_ = nullptr;
+  HWND password_probe_hwnd_ = nullptr;
+  bool password_probe_result_ = false;
 };
