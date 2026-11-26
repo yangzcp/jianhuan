@@ -186,8 +186,11 @@ int main(int argc, char** argv) {
   engine.clear_composition(session);
 
   type(engine, session, "woganj");
-  if (!engine.get_context(session, context) || !has_candidate(context, "我感觉")) {
-    std::cerr << "colloquial sentence regression failed (woganj)\n";
+  if (!engine.get_context(session, context) || context.candidates.empty() ||
+      context.candidates[0].text != "我感觉") {
+    std::cerr << "colloquial sentence regression failed (woganj top); candidates:";
+    for (const auto& candidate : context.candidates) std::cerr << " " << candidate.text;
+    std::cerr << "\n";
     engine.destroy_session(session);
     engine.shutdown();
     return 1;

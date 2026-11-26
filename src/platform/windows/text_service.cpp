@@ -361,7 +361,9 @@ HRESULT JianhuanTextService::HandleKey(TfEditCookie cookie, ITfContext* context,
     jianhuan::Context c;
     engine.get_context(session_, c);
     const std::string raw = engine.raw_input(session_);
-    if (!raw.empty() && (keycode - '0') == static_cast<int>(c.candidates.size()) + 1) {
+    const int disp = keycode - '1';
+    const int n = static_cast<int>(c.candidates.size());
+    if (!raw.empty() && disp == n) {
       InsertText(cookie, context, raw);
       engine.clear_composition(session_);
       EndComposition(cookie);
@@ -369,8 +371,31 @@ HRESULT JianhuanTextService::HandleKey(TfEditCookie cookie, ITfContext* context,
       composing_ = false;
       return S_OK;
     }
+    if (disp < n) {
+      engine.select_candidate_on_current_page(session_, static_cast<std::size_t>(disp));
+    } else {
+      engine.process_key(session_, keycode, mask);
+    }
+  } else if (keycode == 0x20) {
+    jianhuan::Context c;
+    engine.get_context(session_, c);
+    const std::string raw = engine.raw_input(session_);
+    if (!c.candidates.empty()) {
+      const int hi = c.highlighted < 0 ? 0 : c.highlighted;
+      engine.select_candidate_on_current_page(session_, static_cast<std::size_t>(hi));
+    } else if (!raw.empty()) {
+      InsertText(cookie, context, raw);
+      engine.clear_composition(session_);
+      EndComposition(cookie);
+      candidate_.Hide();
+      composing_ = false;
+      return S_OK;
+    } else {
+      engine.process_key(session_, keycode, mask);
+    }
+  } else {
+    engine.process_key(session_, keycode, mask);
   }
-  engine.process_key(session_, keycode, mask);
 
   std::string commit;
   if (engine.get_commit(session_, commit)) {

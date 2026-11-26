@@ -100,13 +100,23 @@ int main(int argc, char** argv) {
       engine.change_page(session, true);
     } else if (line == "/clear") {
       engine.clear_composition(session);
+    } else if (line.rfind("/type ", 0) == 0) {
+      for (char c : line.substr(6)) {
+        engine.process_key(session, keysym_for_char(c), 0);
+      }
     } else if (line.size() == 2 && line[0] == '/' && line[1] >= '1' && line[1] <= '9') {
       engine.select_candidate_on_current_page(session, static_cast<std::size_t>(line[1] - '1'));
     } else {
       for (char c : line) {
         engine.process_key(session, keysym_for_char(c), 0);
       }
-      engine.process_key(session, 0x20, 0);
+      jianhuan::Context c;
+      if (engine.get_context(session, c) && !c.candidates.empty()) {
+        const int hi = c.highlighted < 0 ? 0 : c.highlighted;
+        engine.select_candidate_on_current_page(session, static_cast<std::size_t>(hi));
+      } else {
+        engine.process_key(session, 0x20, 0);
+      }
     }
 
     std::string commit;

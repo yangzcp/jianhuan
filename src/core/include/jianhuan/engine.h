@@ -46,6 +46,7 @@ class Engine {
   bool get_context(std::uint64_t session, Context& context);
   bool is_composing(std::uint64_t session);
   std::string raw_input(std::uint64_t session);
+  void rerank_texts(std::vector<std::string>& texts);
 
   bool select_candidate(std::uint64_t session, std::size_t index);
   bool select_candidate_on_current_page(std::uint64_t session, std::size_t index);
@@ -56,13 +57,14 @@ class Engine {
   bool select_schema(std::uint64_t session, const std::string& schema_id);
   std::string current_schema(std::uint64_t session);
 
+  struct Impl;
+
  private:
   Engine() = default;
   ~Engine();
   Engine(const Engine&) = delete;
   Engine& operator=(const Engine&) = delete;
 
-  struct Impl;
   Impl* impl_ = nullptr;
 };
 

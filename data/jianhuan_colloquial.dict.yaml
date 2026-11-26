@@ -8,153 +8,153 @@ name: jianhuan_colloquial
 version: "0.1"
 sort: by_weight
 ...
-我感觉	wo gan jue	100000
-我觉得	wo jue de	100000
-我认为	wo ren wei	100000
-我喜欢	wo xi huan	100000
-我希望	wo xi wang	100000
-我知道	wo zhi dao	100000
-我想去	wo xiang qu	100000
-我想要	wo xiang yao	100000
-我打算	wo da suan	100000
-我准备	wo zhun bei	100000
-我开始	wo kai shi	100000
-我继续	wo ji xu	100000
-我停止	wo ting zhi	100000
-我喜欢你	wo xi huan ni	100000
-我爱你	wo ai ni	100000
-我想你	wo xiang ni	100000
-我帮你	wo bang ni	100000
-我陪你	wo pei ni	100000
-我等你	wo deng ni	100000
-我找你	wo zhao ni	100000
-我看你	wo kan ni	100000
-我跟你	wo gen ni	100000
-我对你	wo dui ni	100000
-我为你	wo wei ni	100000
-我买	wo mai	100000
-我卖	wo mai	100000
-我吃	wo chi	100000
-我喝	wo he	100000
-我看	wo kan	100000
-我听	wo ting	100000
-我说	wo shuo	100000
-我问	wo wen	100000
-我答	wo da	100000
-我想	wo xiang	100000
-我念	wo nian	100000
-我思	wo si	100000
-我考虑	wo kao lv	100000
-我怀疑	wo huai yi	100000
-我相信	wo xiang xin	100000
-我同意	wo tong yi	100000
-我反对	wo fan dui	100000
-我支持	wo zhi chi	100000
-我感谢	wo gan xie	100000
-我道歉	wo dao qian	100000
-我原谅	wo yuan liang	100000
-我理解	wo li jie	100000
-我误会	wo wu hui	100000
-我信任	wo xin ren	100000
-我尊重	wo zun zhong	100000
-我重视	wo zhong shi	100000
-我忽略	wo hu lve	100000
-我担心	wo dan xin	100000
-我害怕	wo hai pa	100000
-我开心	wo kai xin	100000
-我难过	wo nan guo	100000
-我生气	wo sheng qi	100000
-我着急	wo zhao ji	100000
-我紧张	wo jin zhang	100000
-我放松	wo fang song	100000
-我休息	wo xiu xi	100000
-我工作	wo gong zuo	100000
-我学习	wo xue xi	100000
-我生活	wo sheng huo	100000
-我吃饭	wo chi fan	100000
-我睡觉	wo shui jiao	100000
-我走路	wo zou lu	100000
-我跑步	wo pao bu	100000
-我游泳	wo you yong	100000
-我打球	wo da qiu	100000
-我看书	wo kan shu	100000
-我写字	wo xie zi	100000
-我画画	wo hua hua	100000
-我唱歌	wo chang ge	100000
-我跳舞	wo tiao wu	100000
-我拍照	wo pai zhao	100000
-我旅游	wo lv you	100000
-我购物	wo gou wu	100000
-我做饭	wo zuo fan	100000
-我洗衣	wo xi yi	100000
-我打扫	wo da sao	100000
-我整理	wo zheng li	100000
-我安排	wo an pai	100000
-我计划	wo ji hua	100000
-我总结	wo zong jie	100000
-我汇报	wo hui bao	100000
-我讨论	wo tao lun	100000
-我沟通	wo gou tong	100000
-我交流	wo jiao liu	100000
-我合作	wo he zuo	100000
-我竞争	wo jing zheng	100000
-我比赛	wo bi sai	100000
-我胜利	wo sheng li	100000
-我失败	wo shi bai	100000
-我成功	wo cheng gong	100000
-我努力	wo nu li	100000
-我坚持	wo jian chi	100000
-我放弃	wo fang qi	100000
-我选择	wo xuan ze	100000
-我决定	wo jue ding	100000
-你觉得	ni jue de	100000
-你认为	ni ren wei	100000
-你喜欢	ni xi huan	100000
-你知道	ni zhi dao	100000
-你想要	ni xiang yao	100000
-你打算	ni da suan	100000
-你准备	ni zhun bei	100000
-他开始	ta kai shi	100000
-她开始	ta kai shi	100000
-我们知道	wo men zhi dao	100000
-你们知道	ni men zhi dao	100000
-他们知道	ta men zhi dao	100000
-大家可以	da jia ke yi	100000
-我们应该	wo men ying gai	100000
-你们应该	ni men ying gai	100000
-他们应该	ta men ying gai	100000
-我需要	wo xu yao	100000
-你需要	ni xu yao	100000
-他需要	ta xu yao	100000
-我们需要	wo men xu yao	100000
-你们需要	ni men xu yao	100000
-他们需要	ta men xu yao	100000
-我喜欢吃	wo xi huan chi	100000
-我喜欢喝	wo xi huan he	100000
-我喜欢看	wo xi huan kan	100000
-我喜欢听	wo xi huan ting	100000
-我喜欢玩	wo xi huan wan	100000
-我喜欢去	wo xi huan qu	100000
-我想吃	wo xiang chi	100000
-我想喝	wo xiang he	100000
-我想看	wo xiang kan	100000
-我想听	wo xiang ting	100000
-我想玩	wo xiang wan	100000
-我想去	wo xiang qu	100000
-我感觉好	wo gan jue hao	100000
-我感觉冷	wo gan jue leng	100000
-我感觉热	wo gan jue re	100000
-我感觉累	wo gan jue lei	100000
-我感觉困	wo gan jue kun	100000
-我感觉饿	wo gan jue e	100000
-我感觉渴	wo gan jue ke	100000
-我感觉疼	wo gan jue teng	100000
-我感觉痒	wo gan jue yang	100000
-我感觉麻	wo gan jue ma	100000
-我感觉酸	wo gan jue suan	100000
-我感觉甜	wo gan jue tian	100000
-我感觉苦	wo gan jue ku	100000
-我感觉辣	wo gan jue la	100000
-我感觉咸	wo gan jue xian	100000
-我感觉香	wo gan jue xiang	100000
-我感觉臭	wo gan jue chou	100000
+我感觉	wo gan jue	10000000
+我觉得	wo jue de	10000000
+我认为	wo ren wei	10000000
+我喜欢	wo xi huan	10000000
+我希望	wo xi wang	10000000
+我知道	wo zhi dao	10000000
+我想去	wo xiang qu	10000000
+我想要	wo xiang yao	10000000
+我打算	wo da suan	10000000
+我准备	wo zhun bei	10000000
+我开始	wo kai shi	10000000
+我继续	wo ji xu	10000000
+我停止	wo ting zhi	10000000
+我喜欢你	wo xi huan ni	10000000
+我爱你	wo ai ni	10000000
+我想你	wo xiang ni	10000000
+我帮你	wo bang ni	10000000
+我陪你	wo pei ni	10000000
+我等你	wo deng ni	10000000
+我找你	wo zhao ni	10000000
+我看你	wo kan ni	10000000
+我跟你	wo gen ni	10000000
+我对你	wo dui ni	10000000
+我为你	wo wei ni	10000000
+我买	wo mai	10000000
+我卖	wo mai	10000000
+我吃	wo chi	10000000
+我喝	wo he	10000000
+我看	wo kan	10000000
+我听	wo ting	10000000
+我说	wo shuo	10000000
+我问	wo wen	10000000
+我答	wo da	10000000
+我想	wo xiang	10000000
+我念	wo nian	10000000
+我思	wo si	10000000
+我考虑	wo kao lv	10000000
+我怀疑	wo huai yi	10000000
+我相信	wo xiang xin	10000000
+我同意	wo tong yi	10000000
+我反对	wo fan dui	10000000
+我支持	wo zhi chi	10000000
+我感谢	wo gan xie	10000000
+我道歉	wo dao qian	10000000
+我原谅	wo yuan liang	10000000
+我理解	wo li jie	10000000
+我误会	wo wu hui	10000000
+我信任	wo xin ren	10000000
+我尊重	wo zun zhong	10000000
+我重视	wo zhong shi	10000000
+我忽略	wo hu lve	10000000
+我担心	wo dan xin	10000000
+我害怕	wo hai pa	10000000
+我开心	wo kai xin	10000000
+我难过	wo nan guo	10000000
+我生气	wo sheng qi	10000000
+我着急	wo zhao ji	10000000
+我紧张	wo jin zhang	10000000
+我放松	wo fang song	10000000
+我休息	wo xiu xi	10000000
+我工作	wo gong zuo	10000000
+我学习	wo xue xi	10000000
+我生活	wo sheng huo	10000000
+我吃饭	wo chi fan	10000000
+我睡觉	wo shui jiao	10000000
+我走路	wo zou lu	10000000
+我跑步	wo pao bu	10000000
+我游泳	wo you yong	10000000
+我打球	wo da qiu	10000000
+我看书	wo kan shu	10000000
+我写字	wo xie zi	10000000
+我画画	wo hua hua	10000000
+我唱歌	wo chang ge	10000000
+我跳舞	wo tiao wu	10000000
+我拍照	wo pai zhao	10000000
+我旅游	wo lv you	10000000
+我购物	wo gou wu	10000000
+我做饭	wo zuo fan	10000000
+我洗衣	wo xi yi	10000000
+我打扫	wo da sao	10000000
+我整理	wo zheng li	10000000
+我安排	wo an pai	10000000
+我计划	wo ji hua	10000000
+我总结	wo zong jie	10000000
+我汇报	wo hui bao	10000000
+我讨论	wo tao lun	10000000
+我沟通	wo gou tong	10000000
+我交流	wo jiao liu	10000000
+我合作	wo he zuo	10000000
+我竞争	wo jing zheng	10000000
+我比赛	wo bi sai	10000000
+我胜利	wo sheng li	10000000
+我失败	wo shi bai	10000000
+我成功	wo cheng gong	10000000
+我努力	wo nu li	10000000
+我坚持	wo jian chi	10000000
+我放弃	wo fang qi	10000000
+我选择	wo xuan ze	10000000
+我决定	wo jue ding	10000000
+你觉得	ni jue de	10000000
+你认为	ni ren wei	10000000
+你喜欢	ni xi huan	10000000
+你知道	ni zhi dao	10000000
+你想要	ni xiang yao	10000000
+你打算	ni da suan	10000000
+你准备	ni zhun bei	10000000
+他开始	ta kai shi	10000000
+她开始	ta kai shi	10000000
+我们知道	wo men zhi dao	10000000
+你们知道	ni men zhi dao	10000000
+他们知道	ta men zhi dao	10000000
+大家可以	da jia ke yi	10000000
+我们应该	wo men ying gai	10000000
+你们应该	ni men ying gai	10000000
+他们应该	ta men ying gai	10000000
+我需要	wo xu yao	10000000
+你需要	ni xu yao	10000000
+他需要	ta xu yao	10000000
+我们需要	wo men xu yao	10000000
+你们需要	ni men xu yao	10000000
+他们需要	ta men xu yao	10000000
+我喜欢吃	wo xi huan chi	10000000
+我喜欢喝	wo xi huan he	10000000
+我喜欢看	wo xi huan kan	10000000
+我喜欢听	wo xi huan ting	10000000
+我喜欢玩	wo xi huan wan	10000000
+我喜欢去	wo xi huan qu	10000000
+我想吃	wo xiang chi	10000000
+我想喝	wo xiang he	10000000
+我想看	wo xiang kan	10000000
+我想听	wo xiang ting	10000000
+我想玩	wo xiang wan	10000000
+我想去	wo xiang qu	10000000
+我感觉好	wo gan jue hao	10000000
+我感觉冷	wo gan jue leng	10000000
+我感觉热	wo gan jue re	10000000
+我感觉累	wo gan jue lei	10000000
+我感觉困	wo gan jue kun	10000000
+我感觉饿	wo gan jue e	10000000
+我感觉渴	wo gan jue ke	10000000
+我感觉疼	wo gan jue teng	10000000
+我感觉痒	wo gan jue yang	10000000
+我感觉麻	wo gan jue ma	10000000
+我感觉酸	wo gan jue suan	10000000
+我感觉甜	wo gan jue tian	10000000
+我感觉苦	wo gan jue ku	10000000
+我感觉辣	wo gan jue la	10000000
+我感觉咸	wo gan jue xian	10000000
+我感觉香	wo gan jue xiang	10000000
+我感觉臭	wo gan jue chou	10000000
