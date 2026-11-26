@@ -53,6 +53,8 @@ int main(int argc, char** argv) {
   CHECK(ShouldEatKeyPolicy(false, false, false, VK_OEM_COMMA, false, false, false, ',') == eat);
   CHECK(ShouldEatKeyPolicy(false, true, false, VK_OEM_PLUS, false, false, false, '=') == eat);
   CHECK(ShouldEatKeyPolicy(false, false, false, VK_OEM_PLUS, false, false, false, '=') == pass);
+  CHECK(ShouldEatKeyPolicy(false, true, true, VK_OEM_PLUS, false, false, false, '=') == eat);
+  CHECK(ShouldEatKeyPolicy(false, true, true, VK_OEM_MINUS, false, false, false, '-') == eat);
   CHECK(ShouldEatKeyPolicy(false, false, false, '5', false, false, false, '5') == pass);
   CHECK(ShouldEatKeyPolicy(false, true, false, '5', false, false, false, '5') == eat);
   CHECK(ShouldEatKeyPolicy(false, false, false, VK_F6, false, false, false, 0) == pass);

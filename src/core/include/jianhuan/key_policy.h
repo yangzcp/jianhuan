@@ -14,10 +14,6 @@ inline bool ShouldEatKeyPolicy(bool ascii_mode, bool composing, bool ascii_punct
   }
   if (ctrl || alt || win) return false;
   if (keycode >= '0' && keycode <= '9') return composing;
-  if (keycode >= 0x20 && keycode <= 0x7e && keycode != ' ' &&
-      !std::isalnum(static_cast<unsigned char>(keycode)) && ascii_punct) {
-    return false;
-  }
   switch (vk) {
     case VK_BACK:
     case VK_DELETE:
@@ -39,10 +35,17 @@ inline bool ShouldEatKeyPolicy(bool ascii_mode, bool composing, bool ascii_punct
     case VK_SUBTRACT:
       return composing;
     default:
-      // Only swallow printable text keys (to start/continue composition).
-      // Function keys, media keys, and app hotkeys (e.g. Shift+F6) pass through.
-      return keycode >= 0x21 && keycode <= 0x7e;
+      break;
   }
+  // Paging/editing keys above win over ascii_punct; only plain punctuation
+  // passes through when English punctuation is enabled.
+  if (keycode >= 0x20 && keycode <= 0x7e && keycode != ' ' &&
+      !std::isalnum(static_cast<unsigned char>(keycode)) && ascii_punct) {
+    return false;
+  }
+  // Only swallow printable text keys (to start/continue composition).
+  // Function keys, media keys, and app hotkeys (e.g. Shift+F6) pass through.
+  return keycode >= 0x21 && keycode <= 0x7e;
 }
 
 }  // namespace jianhuan

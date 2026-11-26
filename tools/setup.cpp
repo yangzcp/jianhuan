@@ -114,6 +114,12 @@ void MoveToPending(const fs::path& path) {
   MoveFileExW(path.c_str(), (pending / path.filename()).c_str(), MOVEFILE_REPLACE_EXISTING);
 }
 
+// Nudge running processes to re-evaluate the input language so they re-create
+// the text service (loading the newly registered DLL) without a reboot.
+void RefreshInputEnvironment() {
+  SendNotifyMessageW(HWND_BROADCAST, WM_INPUTLANGCHANGE, 0, 0);
+}
+
 bool HasFlag(int argc, wchar_t** argv, const wchar_t* flag) {
   for (int i = 1; i < argc; ++i) {
     if (_wcsicmp(argv[i], flag) == 0) return true;
@@ -277,6 +283,7 @@ int wmain(int argc, wchar_t** argv) {
     if (fs::exists(registrar32)) {
       RunProcess(registrar32, L"/unregister");
     }
+    RefreshInputEnvironment();
     RemoveUninstallEntry();
     {
       HKEY run_key = nullptr;
@@ -411,13 +418,17 @@ int wmain(int argc, wchar_t** argv) {
   }
   const DWORD result = RunProcess(staging / "jianhuan_register.exe", args);
   if (result != 0) {
-    if (!quiet) MessageBoxW(nullptr, L"输入法注册失败。", L"简焕", MB_OK | MB_ICONERROR);
-    return 1;
+    Sleep(500);
+    if (RunProcess(staging / "jianhuan_register.exe", args) != 0) {
+      if (!quiet) MessageBoxW(nullptr, L"输入法注册失败。", L"简焕", MB_OK | MB_ICONERROR);
+      return 1;
+    }
   }
   if (has32 && fs::exists(staging / "jianhuan_register32.exe")) {
     const std::wstring args32 = L"/register /DLL64=\"" + dll32.wstring() + L"\"";
     RunProcess(staging / "jianhuan_register32.exe", args32);
   }
+  RefreshInputEnvironment();
 
   wchar_t self[MAX_PATH] = {};
   GetModuleFileNameW(nullptr, self, MAX_PATH);
@@ -445,7 +456,7 @@ int wmain(int argc, wchar_t** argv) {
   }
   fs::remove_all(staging, ec);
   if (!quiet) {
-    MessageBoxW(nullptr, L"简焕输入法安装完成。\n请在 Windows 输入法设置中切换到“简焕”。\n若未生效，请重启相关应用或注销重登。", L"简焕", MB_OK | MB_ICONINFORMATION);
+    MessageBoxW(nullptr, L"简焕输入法安装完成，无需重启电脑。\n请在 Windows 输入法设置中切换到“简焕”。\n已打开的程序切换一次输入法即加载新版。", L"简焕", MB_OK | MB_ICONINFORMATION);
   }
   return 0;
 }

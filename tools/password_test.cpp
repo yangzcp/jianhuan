@@ -87,6 +87,6 @@ int wmain() {
   processor->Release();
   g_log << "password ok\n";
   g_log.flush();
-  ExitProcess(0);
+  TerminateProcess(GetCurrentProcess(), 0);
   return 0;
 }

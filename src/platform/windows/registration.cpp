@@ -85,7 +85,9 @@ HRESULT RegisterProfiles() {
 
   hr = profiles->Register(CLSID_JianhuanTextService);
   if (SUCCEEDED(hr)) {
-    profiles->RemoveLanguageProfile(CLSID_JianhuanTextService, kLangId, GUID_JianhuanProfile);
+    // AddLanguageProfile updates an existing profile in place. Do NOT remove it
+    // first: removal fails while the profile is actively in use, which would
+    // break overwrite-install without switching IME away.
     hr = profiles->AddLanguageProfile(CLSID_JianhuanTextService, kLangId, GUID_JianhuanProfile,
                                       kDescription, static_cast<ULONG>(wcslen(kDescription)),
                                       nullptr, 0, 0);
