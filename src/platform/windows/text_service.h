@@ -44,6 +44,8 @@ class JianhuanTextService : public ITfTextInputProcessor,
   std::uint64_t session_ = 0;
   ITfComposition* composition_ = nullptr;
   ITfLangBarItemButton* langbar_item_ = nullptr;
+  RECT last_rect_ = {};
+  bool have_last_rect_ = false;
   CandidateWindow candidate_;
   bool ascii_mode_ = false;
   bool composing_ = false;

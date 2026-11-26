@@ -153,6 +153,38 @@ int main(int argc, char** argv) {
   }
   engine.clear_composition(session);
 
+  type(engine, session, "shi");
+  jianhuan::Context page0;
+  engine.get_context(session, page0);
+  engine.change_page(session, false);
+  jianhuan::Context page1;
+  engine.get_context(session, page1);
+  if (page1.page_no != page0.page_no + 1 || page1.candidates.empty()) {
+    std::cerr << "paging regression failed\n";
+    engine.destroy_session(session);
+    engine.shutdown();
+    return 1;
+  }
+  engine.clear_composition(session);
+
+  type(engine, session, "zzzz");
+  if (engine.raw_input(session) != "zzzz") {
+    std::cerr << "raw input fallback regression failed\n";
+    engine.destroy_session(session);
+    engine.shutdown();
+    return 1;
+  }
+  engine.clear_composition(session);
+
+  type(engine, session, "hello");
+  if (!engine.get_context(session, context) || !has_candidate(context, "hello")) {
+    std::cerr << "english word candidate regression failed\n";
+    engine.destroy_session(session);
+    engine.shutdown();
+    return 1;
+  }
+  engine.clear_composition(session);
+
   if (!engine.select_schema(session, "jianhuan_double_pinyin")) {
     std::cerr << "select jianhuan_double_pinyin failed\n";
     return 1;

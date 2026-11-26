@@ -284,12 +284,16 @@ STDMETHODIMP JianhuanTextService::OnKeyDown(ITfContext* context, WPARAM wparam, 
   if (!ascii_mode_ && jianhuan::Engine::instance().is_composing(session_) &&
       (wparam == VK_OEM_PLUS || wparam == VK_OEM_MINUS || wparam == VK_ADD || wparam == VK_SUBTRACT)) {
     const bool backward = (wparam == VK_OEM_MINUS || wparam == VK_SUBTRACT);
-    jianhuan::Engine::instance().change_page(session_, backward);
-    auto* refresh = new (std::nothrow) JianhuanEditSession(this, context, 0, 0);
-    if (refresh) {
-      HRESULT hr = S_OK;
-      context->RequestEditSession(client_id_, refresh, TF_ES_ASYNCDONTCARE | TF_ES_READWRITE, &hr);
-      refresh->Release();
+    auto& engine = jianhuan::Engine::instance();
+    engine.change_page(session_, backward);
+    jianhuan::Context c;
+    if (engine.get_context(session_, c) && have_last_rect_) {
+      std::vector<std::string> candidates;
+      for (const auto& item : c.candidates) candidates.push_back(item.text);
+      const std::string raw = engine.raw_input(session_);
+      if (!raw.empty()) candidates.push_back(raw);
+      candidate_.Show(last_rect_.left, last_rect_.bottom, candidates, c.highlighted,
+                      c.page_no, c.is_last_page, c.preedit);
     }
     return S_OK;
   }
@@ -455,6 +459,8 @@ HRESULT JianhuanTextService::UpdateComposition(TfEditCookie cookie, ITfContext* 
     GetCursorPos(&cursor);
     rect = {cursor.x, cursor.y, cursor.x, cursor.y + 20};
   }
+  last_rect_ = rect;
+  have_last_rect_ = true;
 
   std::vector<std::string> candidates;
   for (const auto& candidate : engine_context.candidates) {
