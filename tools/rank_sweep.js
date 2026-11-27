@@ -26,6 +26,7 @@ const entries = [
 const fullCodes = entries.map(([t, s]) => [t, s.join("")]);
 const fullMap = new Map();
 const variantMap = new Map();
+const variantPrefixMap = new Map();
 function variants(syl) {
   const out = [];
   for (let k = 0; k <= syl.length; k++) {
@@ -40,6 +41,11 @@ for (const [t, s] of entries) {
   for (const v of variants(s)) {
     if (!variantMap.has(v)) variantMap.set(v, []);
     if (!variantMap.get(v).includes(t)) variantMap.get(v).push(t);
+    for (let len = 5; len <= v.length; len++) {
+      const p = v.slice(0, len);
+      if (!variantPrefixMap.has(p)) variantPrefixMap.set(p, []);
+      if (!variantPrefixMap.get(p).includes(t)) variantPrefixMap.get(p).push(t);
+    }
   }
 }
 function acceptableForPrefix(input) {
@@ -86,7 +92,7 @@ for (const [text, syl] of entries) {
   const strictFull = full.length >= 5 && !singleSyllables.has(full) && !englishSet.has(full);
   push(full, strictFull ? fullMap.get(full) : null, "full");
   const mx = mixed(syl);
-  if (mx.length >= 5) push(mx, union(variantMap.get(mx) || [text], completions(mx)), "mixed");
+  if (mx.length >= 5) push(mx, union(variantPrefixMap.get(mx), completions(mx)), "mixed");
   if (full.length - 1 >= 5) push(full.slice(0, -1), union(acceptableForPrefix(full.slice(0, -1)), completions(full.slice(0, -1)), fullMap.get(full.slice(0, -1))), "partial");
 }
 for (const w of english) push(w, [w], "english");

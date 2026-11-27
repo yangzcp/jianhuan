@@ -66,9 +66,19 @@ speller:
     - derive/ong$/on/
     - derive/ao$/oa/
     - derive/([iu])a(o|ng?)$/a$1$2/
+    - fuzz/zh/z/
+    - fuzz/ch/c/
+    - fuzz/sh/s/
+    - fuzz/n/l/
+    - fuzz/en/eng/
+    - fuzz/in/ing/
+    - fuzz/an/ang/
+    - fuzz/ian/iang/
+    - fuzz/uan/uang/
 
 translator:
   dictionary: jianhuan_pinyin
+  enable_correction: true
   preedit_format:
     - xform/([nl])v/$1ü/
     - xform/([nl])ue/$1üe/

@@ -36,6 +36,7 @@ const entries = [
   ...readEntries("jianhuan_colloquial.dict.yaml", 0, false),
   ...readEntries("jianhuan_poetry.dict.yaml", 0, false),
   ...readEntries("pinyin_simp.dict.yaml", 1000, true),
+  ...readEntries("jianhuan_english.dict.yaml", 0, false),
 ];
 
 const seen = new Set();
@@ -50,4 +51,10 @@ for (const [text, syllables] of entries) {
   }
 }
 fs.writeFileSync(path.join(root, "data", "jianhuan_predict.txt"), lines.join("\n") + "\n");
-console.log("predict entries", entries.length, "variant lines", lines.length);
+const codeMap = new Map();
+for (const [text, syllables] of entries) {
+  if (!codeMap.has(text)) codeMap.set(text, syllables.join(""));
+}
+fs.writeFileSync(path.join(root, "data", "jianhuan_code.txt"),
+                 [...codeMap.entries()].map(([t, c]) => `${t}\t${c}`).join("\n") + "\n");
+console.log("predict entries", entries.length, "variant lines", lines.length, "code map", codeMap.size);
