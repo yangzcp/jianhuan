@@ -8,6 +8,7 @@ copy /y "%~dp0..\build\src\platform\windows\jianhuan_tsf.dll" "%DIST%\"
 copy /y "%~dp0..\build\src\platform\windows\jianhuan_register.exe" "%DIST%\"
 if exist "%~dp0..\build\src\platform\windows\jianhuan_settings.exe" copy /y "%~dp0..\build\src\platform\windows\jianhuan_settings.exe" "%DIST%\"
 if exist "%~dp0..\build\src\platform\windows\jianhuan_tray.exe" copy /y "%~dp0..\build\src\platform\windows\jianhuan_tray.exe" "%DIST%\"
+copy /y "%~dp0..\src\platform\windows\jianhuan.ico" "%DIST%\"
 if exist "%~dp0..\build-x86\src\platform\windows\jianhuan_register.exe" copy /y "%~dp0..\build-x86\src\platform\windows\jianhuan_register.exe" "%DIST%\jianhuan_register32.exe"
 if exist "%~dp0..\build-x86\src\platform\windows\jianhuan_tsf.dll" copy /y "%~dp0..\build-x86\src\platform\windows\jianhuan_tsf.dll" "%DIST%\jianhuan_tsf32.dll"
 robocopy "%~dp0..\data" "%DIST%\data" /E /XF jianhuan_phrases.dict.yaml pinyin_simp.dict.yaml /NFL /NDL /NJH /NJS

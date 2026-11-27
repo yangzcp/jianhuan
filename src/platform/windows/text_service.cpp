@@ -588,6 +588,20 @@ HRESULT JianhuanTextService::UpdateComposition(TfEditCookie cookie, ITfContext* 
   last_rect_ = rect;
   have_last_rect_ = true;
 
+  // Drive the system taskbar 中/英 indicator via the openclose compartment.
+  ITfCompartmentMgr* cm = nullptr;
+  if (SUCCEEDED(context->QueryInterface(IID_ITfCompartmentMgr, reinterpret_cast<void**>(&cm))) && cm) {
+    ITfCompartment* comp = nullptr;
+    if (SUCCEEDED(cm->GetCompartment(GUID_COMPARTMENT_KEYBOARD_OPENCLOSE, &comp)) && comp) {
+      VARIANT v = {};
+      v.vt = VT_I4;
+      v.lVal = AsciiMode() ? 0 : 1;
+      comp->SetValue(cookie, &v);
+      comp->Release();
+    }
+    cm->Release();
+  }
+
   ShowCandidates(engine_context, rect.left, rect.bottom);
   TsfLog(L"Show candidates=" + std::to_wstring(engine_context.candidates.size()) + L" preedit_len=" +
          std::to_wstring(engine_context.preedit.size()));

@@ -25,4 +25,5 @@ class JianhuanLangBarItem : public ITfLangBarItemButton {
   ~JianhuanLangBarItem();
   void ApplyCommand(UINT id);
   LONG ref_ = 1;
+  HICON icon_ = nullptr;
 };

@@ -71,14 +71,23 @@ STDMETHODIMP JianhuanLangBarItem::GetTooltipString(BSTR* text) {
 
 STDMETHODIMP JianhuanLangBarItem::GetIcon(HICON* icon) {
   if (!icon) return E_INVALIDARG;
-  *icon = nullptr;
+  if (!icon_) {
+    HMODULE module = nullptr;
+    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCWSTR>(&langbar_anchor), &module);
+    wchar_t path[MAX_PATH] = {};
+    GetModuleFileNameW(module, path, MAX_PATH);
+    const auto ico = std::filesystem::path(path).parent_path() / "jianhuan.ico";
+    icon_ = static_cast<HICON>(LoadImageW(nullptr, ico.c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE));
+  }
+  *icon = icon_;
   return S_OK;
 }
 
 STDMETHODIMP JianhuanLangBarItem::GetText(BSTR* text) {
   if (!text) return E_INVALIDARG;
   const bool ascii = jianhuan::Engine::instance().get_option(g_current_session, "ascii_mode");
-  *text = SysAllocString(ascii ? L"简焕·英" : L"简焕·中");
+  *text = SysAllocString(ascii ? L"英" : L"中");
   return *text ? S_OK : E_OUTOFMEMORY;
 }
 

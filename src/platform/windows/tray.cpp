@@ -75,7 +75,23 @@ void ShowMenu(HWND hwnd) {
   jianhuan::save_settings(UserDir(), settings);
 }
 
+void RefreshTip(HWND hwnd) {
+  jianhuan::Settings settings;
+  jianhuan::load_settings(UserDir(), settings);
+  NOTIFYICONDATAW nid = {};
+  nid.cbSize = sizeof(nid);
+  nid.hWnd = hwnd;
+  nid.uID = 1;
+  nid.uFlags = NIF_TIP;
+  wcscpy_s(nid.szTip, settings.ascii_mode ? L"简焕 · 英" : L"简焕 · 中");
+  Shell_NotifyIconW(NIM_MODIFY, &nid);
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
+  if (message == WM_TIMER) {
+    RefreshTip(hwnd);
+    return 0;
+  }
   if (message == kTrayMessage) {
     if (lparam == WM_RBUTTONUP || lparam == WM_CONTEXTMENU) {
       ShowMenu(hwnd);
@@ -122,6 +138,8 @@ int wmain() {
   nid.hIcon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(1));
   wcscpy_s(nid.szTip, L"简焕输入法");
   Shell_NotifyIconW(NIM_ADD, &nid);
+  RefreshTip(hwnd);
+  SetTimer(hwnd, 1, 1000, nullptr);
 
   MSG msg = {};
   while (GetMessageW(&msg, nullptr, 0, 0)) {

@@ -36,6 +36,8 @@ struct Engine::Impl {
   std::unordered_map<std::string, int> predict_len;
   bool predict_loaded = false;
   std::unordered_map<std::string, double> freq;
+  std::unordered_map<std::string, std::uint32_t> user_freq;
+  std::string user_freq_path;
   std::unordered_map<std::string, std::string> code;
   std::unordered_map<std::string, std::string> revcode;
   std::unordered_map<char32_t, std::uint32_t> uni;
@@ -109,6 +111,24 @@ void LoadRevCode(Engine::Impl* impl, const std::string& path) {
     if (tab == std::string::npos) continue;
     impl->revcode[line.substr(0, tab)] = line.substr(tab + 1);
   }
+}
+
+// Personalization: append-only log of committed texts; counts loaded at init.
+void LoadUserFreq(Engine::Impl* impl, const std::string& path) {
+  impl->user_freq_path = path;
+  std::ifstream file(path);
+  if (!file.is_open()) return;
+  std::string line;
+  while (std::getline(file, line)) {
+    if (!line.empty()) impl->user_freq[line]++;
+  }
+}
+
+void RecordUserFreq(Engine::Impl* impl, const std::string& text) {
+  if (text.empty() || impl->user_freq_path.empty()) return;
+  impl->user_freq[text]++;
+  std::ofstream file(impl->user_freq_path, std::ios::app);
+  if (file.is_open()) file << text << "\n";
 }
 
 std::u32string DecodeUtf8(const std::string& s) {
@@ -303,6 +323,7 @@ bool Engine::initialize(const std::string& shared_data_dir,
   LoadCode(impl_, (std::filesystem::path(shared_data_dir) / "jianhuan_code.txt").string());
   LoadRevCode(impl_, (std::filesystem::path(shared_data_dir) / "jianhuan_revcode.txt").string());
   LoadLm(impl_, (std::filesystem::path(shared_data_dir) / "jianhuan_lm.txt").string());
+  LoadUserFreq(impl_, (std::filesystem::path(user_data_dir) / "jianhuan_user_freq.txt").string());
 
   RimeApi* api = rime_get_api();
   if (!api) {
@@ -404,6 +425,7 @@ bool Engine::get_commit(std::uint64_t session, std::string& text) {
   if (!pending.empty()) {
     text = pending;
     pending.clear();
+    RecordUserFreq(impl_, text);
     return true;
   }
   RimeCommit commit = {};
@@ -415,6 +437,7 @@ bool Engine::get_commit(std::uint64_t session, std::string& text) {
     text = commit.text;
   }
   impl_->api->free_commit(&commit);
+  RecordUserFreq(impl_, text);
   return true;
 }
 
@@ -501,8 +524,14 @@ bool Engine::get_context(std::uint64_t session, Context& context) {
     const auto fit = impl_->freq.find(text);
     const double freq = fit != impl_->freq.end() ? fit->second : 0.0;
     double s = std::log10(freq + 1.0);
-    if (native && freq == 0.0) s += 5.0;
+    // Personalization: repeatedly committed candidates rise over time.
+    const auto ufit = impl_->user_freq.find(text);
+    if (ufit != impl_->user_freq.end()) s += 2.0 * std::log10(ufit->second + 1.0);
     if (native) s += 0.25;
+    // Emoji candidates carry no dictionary frequency; keep them visible.
+    for (unsigned char ch : text) {
+      if (ch >= 0xF0) { s += 5.0; break; }
+    }
     if (native && text == input) {
       // Raw letter fallback (no dictionary frequency) sinks to the bottom;
       // a real English word exactly matching the input leads.
@@ -596,21 +625,55 @@ bool Engine::select_candidate_on_current_page(std::uint64_t session, std::size_t
     return false;
   }
   std::lock_guard<std::mutex> lock(impl_->mutex);
+  const char* raw = impl_->api->get_input(static_cast<RimeSessionId>(session));
+  const std::string prior = raw ? raw : "";
   const auto& r = impl_->rank[session];
+  std::string selected;
+  bool ok = false;
   if (r.perm.empty()) {
-    return impl_->api->select_candidate_on_current_page(static_cast<RimeSessionId>(session), index) != False;
+    ok = impl_->api->select_candidate_on_current_page(static_cast<RimeSessionId>(session), index) != False;
+  } else {
+    const int merged = index < r.perm.size() ? r.perm[index] : static_cast<int>(index);
+    if (merged < r.rime_count) {
+      RimeContext ctx = {};
+      RIME_STRUCT_INIT(RimeContext, ctx);
+      if (impl_->api->get_context(static_cast<RimeSessionId>(session), &ctx)) {
+        if (merged < ctx.menu.num_candidates && ctx.menu.candidates[merged].text) {
+          selected = ctx.menu.candidates[merged].text;
+        }
+        impl_->api->free_context(&ctx);
+      }
+      ok = impl_->api->select_candidate_on_current_page(static_cast<RimeSessionId>(session), merged) != False;
+    } else {
+      const int j = merged - r.rime_count;
+      if (j >= 0 && j < static_cast<int>(r.injected.size())) {
+        selected = r.injected[j];
+        impl_->rank[session].pending_commit = selected;
+        impl_->api->clear_composition(static_cast<RimeSessionId>(session));
+        ok = true;
+      }
+    }
   }
-  const int merged = index < r.perm.size() ? r.perm[index] : static_cast<int>(index);
-  if (merged < r.rime_count) {
-    return impl_->api->select_candidate_on_current_page(static_cast<RimeSessionId>(session), merged) != False;
+  // Industry partial-selection: keep the unselected tail of the input composing.
+  if (ok && !selected.empty()) {
+    const auto cit = impl_->code.find(selected);
+    if (cit != impl_->code.end() && prior.size() > cit->second.size() &&
+        prior.compare(0, cit->second.size(), cit->second) == 0) {
+      RimeStatus st = {};
+      RIME_STRUCT_INIT(RimeStatus, st);
+      bool composing = false;
+      if (impl_->api->get_status(static_cast<RimeSessionId>(session), &st)) {
+        composing = st.is_composing != False;
+        impl_->api->free_status(&st);
+      }
+      if (!composing) {
+        for (char c : prior.substr(cit->second.size())) {
+          impl_->api->process_key(static_cast<RimeSessionId>(session), static_cast<unsigned char>(c), 0);
+        }
+      }
+    }
   }
-  const int j = merged - r.rime_count;
-  if (j >= 0 && j < static_cast<int>(r.injected.size())) {
-    impl_->rank[session].pending_commit = r.injected[j];
-    impl_->api->clear_composition(static_cast<RimeSessionId>(session));
-    return true;
-  }
-  return false;
+  return ok;
 }
 
 bool Engine::change_page(std::uint64_t session, bool backward) {

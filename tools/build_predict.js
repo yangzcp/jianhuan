@@ -51,10 +51,4 @@ for (const [text, syllables] of entries) {
   }
 }
 fs.writeFileSync(path.join(root, "data", "jianhuan_predict.txt"), lines.join("\n") + "\n");
-const codeMap = new Map();
-for (const [text, syllables] of entries) {
-  if (!codeMap.has(text)) codeMap.set(text, syllables.join(""));
-}
-fs.writeFileSync(path.join(root, "data", "jianhuan_code.txt"),
-                 [...codeMap.entries()].map(([t, c]) => `${t}\t${c}`).join("\n") + "\n");
-console.log("predict entries", entries.length, "variant lines", lines.length, "code map", codeMap.size);
+console.log("predict entries", entries.length, "variant lines", lines.length);

@@ -225,6 +225,22 @@ int main(int argc, char** argv) {
   }
   engine.clear_composition(session);
 
+  type(engine, session, "kank");
+  jianhuan::Context kank_ctx;
+  engine.get_context(session, kank_ctx);
+  engine.select_candidate_on_current_page(session, 0);
+  std::string partial;
+  engine.get_commit(session, partial);
+  jianhuan::Context rem;
+  engine.get_context(session, rem);
+  if (partial != "看" || rem.preedit != "k") {
+    std::cerr << "partial-selection remainder regression failed (kank -> 看 + k)\n";
+    engine.destroy_session(session);
+    engine.shutdown();
+    return 1;
+  }
+  engine.clear_composition(session);
+
   if (!engine.select_schema(session, "jianhuan_double_pinyin")) {
     std::cerr << "select jianhuan_double_pinyin failed\n";
     return 1;

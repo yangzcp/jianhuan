@@ -78,7 +78,7 @@ speller:
 
 translator:
   dictionary: jianhuan_pinyin
-  enable_correction: true
+  enable_correction: false
   preedit_format:
     - xform/([nl])v/$1ü/
     - xform/([nl])ue/$1üe/

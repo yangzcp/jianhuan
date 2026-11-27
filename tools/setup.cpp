@@ -67,7 +67,7 @@ DWORD RunProcess(const fs::path& exe, const std::wstring& args) {
   STARTUPINFOW startup = {};
   startup.cb = sizeof(startup);
   PROCESS_INFORMATION process = {};
-  if (!CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &startup, &process)) {
+  if (!CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &startup, &process)) {
     return 1;
   }
   WaitForSingleObject(process.hProcess, INFINITE);
@@ -392,13 +392,10 @@ int wmain(int argc, wchar_t** argv) {
     pointer << std::string(data_name.begin(), data_name.end());
   }
   {
+    // active_data.txt points the loader at the versioned data dir; no junction
+    // (and no cmd.exe flash) needed.
     std::error_code junction_ec;
     fs::remove(target / "data", junction_ec);
-    if (!fs::exists(target / "data")) {
-      const std::wstring link_args = L"/c mklink /J \"" + (target / "data").wstring() +
-                                     L"\" \"" + data_dir.wstring() + L"\"";
-      RunProcess(L"cmd.exe", link_args);
-    }
   }
 
   fs::copy_file(staging / "jianhuan_register.exe", target / "jianhuan_register.exe",
@@ -409,6 +406,10 @@ int wmain(int argc, wchar_t** argv) {
   }
   if (fs::exists(staging / "jianhuan_tray.exe")) {
     fs::copy_file(staging / "jianhuan_tray.exe", target / "jianhuan_tray.exe",
+                  fs::copy_options::overwrite_existing, ec);
+  }
+  if (fs::exists(staging / "jianhuan.ico")) {
+    fs::copy_file(staging / "jianhuan.ico", target / "jianhuan.ico",
                   fs::copy_options::overwrite_existing, ec);
   }
 
@@ -446,6 +447,8 @@ int wmain(int argc, wchar_t** argv) {
     }
     ShellExecuteW(nullptr, L"open", (target / "jianhuan_tray.exe").c_str(), nullptr, nullptr, SW_SHOWNORMAL);
   }
+  // Refresh the shell icon cache so new icons appear without a reboot.
+  ShellExecuteW(nullptr, L"open", L"ie4uinit.exe", L"-show", nullptr, SW_HIDE);
   for (const auto& entry : fs::directory_iterator(target)) {
     const std::wstring name = entry.path().filename().wstring();
     std::error_code remove_ec;
